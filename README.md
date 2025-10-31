@@ -10,6 +10,7 @@ A modular, production-ready web scraper for extracting product information from 
 - **Test Mode**: Limited scraping for testing and development
 - **Comprehensive Reporting**: Detailed statistics and download tracking
 - **Screenshot Capture**: Product page screenshots for verification
+- **PDF Document Download**: Automatic download of SDS and PDS documents
 
 ## Installation
 
@@ -78,6 +79,18 @@ python product_scraper.py -p products.json -o ./output
 python product_scraper.py -p products.json -o ./output --no-screenshots
 ```
 
+#### 4. PDF Document Download
+
+```bash
+# Download PDFs from a completed scraping run
+python pdf_downloader.py -r agar_scrapes/AgarScrape_20251031_120000
+
+# With custom retry settings
+python pdf_downloader.py -r agar_scrapes/AgarScrape_20251031_120000 --retries 5 --timeout 60
+```
+
+**Note**: The PDF downloader can be run standalone after a scraping run, or it's automatically executed as part of the complete workflow when using `python main.py`.
+
 ## Output Structure
 
 ```
@@ -93,10 +106,17 @@ agar_scrapes/
     │       ├── [product].json     # Individual product data
     │       └── [product]_screenshot.png
     ├── products/                  # All products (duplicated)
+    ├── pdfs/                      # PDF metadata (URLs)
+    │   └── [product]_pdfs.json
+    ├── PDFs/                      # Downloaded PDF documents
+    │   └── [product]/
+    │       ├── [product]_SDS.pdf
+    │       └── [product]_PDS.pdf
     ├── screenshots/               # All screenshots
     ├── logs/                      # Checkpoints and logs
     └── reports/
-        └── final_report.json      # Summary statistics
+        ├── final_report.json      # Summary statistics
+        └── pdf_download_report.json  # PDF download statistics
 ```
 
 ## Product Data Schema
@@ -133,6 +153,7 @@ Edit `config.py` to modify:
 
 - Python 3.11+
 - crawl4ai library
+- aiohttp library
 - asyncio support
 
 ## Error Handling
@@ -155,6 +176,8 @@ Edit `config.py` to modify:
 2. **Missing downloads**: SDS/PDS links may require JavaScript interaction
 3. **Timeout errors**: Increase PAGE_TIMEOUT in config.py
 4. **Rate limiting**: Adjust RATE_LIMIT_DELAY in config.py
+5. **PDF download failures**: Check network connection, increase --retries or --timeout parameters
+6. **SSL errors**: The downloader automatically handles SSL certificate issues
 
 ## License
 

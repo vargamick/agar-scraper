@@ -13,6 +13,7 @@ from category_scraper import CategoryScraper
 from product_collector import ProductCollector
 from product_scraper import ProductScraper
 from product_pdf_scraper import ProductPDFScraper
+from pdf_downloader import PDFDownloader
 from config import create_run_directory, TEST_PRODUCT_LIMIT
 from utils import save_json, create_run_metadata, update_run_metadata
 
@@ -30,6 +31,7 @@ class AgarScraperOrchestrator:
         self.product_collector = ProductCollector(self.run_dir, test_mode)
         self.product_scraper = ProductScraper(self.run_dir, save_screenshots=True)
         self.pdf_scraper = ProductPDFScraper(self.run_dir)
+        self.pdf_downloader = PDFDownloader(self.run_dir)
         
         print(f"📁 Run directory: {self.run_dir}")
         print(f"📝 Run ID: {self.metadata['run_id']}")
@@ -95,8 +97,15 @@ class AgarScraperOrchestrator:
             successful = self.merge_product_data(products_with_details, pdf_data_list)
             print(f"✓ Merged data for {len(successful)} products")
             
+            # Step 6: Download PDF documents
+            print("\n" + "="*60)
+            print("STEP 6: DOWNLOADING PDF DOCUMENTS")
+            print("="*60)
+            
+            download_stats = await self.pdf_downloader.download_all_pdfs(successful)
+            
             # Generate final report
-            self.generate_final_report(successful, all_products, start_time)
+            self.generate_final_report(successful, all_products, start_time, download_stats)
             
             # Update metadata
             update_run_metadata(self.run_dir, {
@@ -160,7 +169,7 @@ class AgarScraperOrchestrator:
         
         return merged
     
-    def generate_final_report(self, successful: List[Dict], all_products: List[Dict], start_time: datetime):
+    def generate_final_report(self, successful: List[Dict], all_products: List[Dict], start_time: datetime, download_stats: Dict = None):
         """Generate comprehensive final report"""
         
         # Download statistics
@@ -199,6 +208,7 @@ class AgarScraperOrchestrator:
                 "products_with_both": products_with_both,
                 "products_with_neither": products_with_neither
             },
+            "pdf_download_statistics": download_stats if download_stats else {},
             "category_breakdown": category_stats
         }
         
