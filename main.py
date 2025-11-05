@@ -1,40 +1,58 @@
 """
-Main orchestrator for Agar scraper
-Coordinates all modules for complete scraping workflow
+3DN Multi-Client Scraper Template
+Main orchestrator for client-specific scraping workflows
 """
 import asyncio
 import argparse
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Type
 
-from category_scraper import CategoryScraper
-from product_collector import ProductCollector
-from product_scraper import ProductScraper
-from product_pdf_scraper import ProductPDFScraper
-from pdf_downloader import PDFDownloader
-from config import create_run_directory, TEST_PRODUCT_LIMIT
-from utils import save_json, create_run_metadata, update_run_metadata
+from config.config_loader import ConfigLoader
+from config.base_config import BaseConfig
+from core.category_scraper import CategoryScraper
+from core.product_collector import ProductCollector
+from core.product_scraper import ProductScraper
+from core.product_pdf_scraper import ProductPDFScraper
+from core.pdf_downloader import PDFDownloader
+from core.utils import save_json, sanitize_filename
 
-class AgarScraperOrchestrator:
+
+class ScraperOrchestrator:
     """Main orchestrator for complete scraping workflow"""
     
-    def __init__(self, base_output_dir: str = "agar_scrapes", test_mode: bool = False):
-        """Initialize orchestrator with run management"""
+    def __init__(self, config: Type[BaseConfig], strategies, test_mode: bool = False):
+        """Initialize orchestrator with configuration"""
+        self.config = config
+        self.strategies = strategies
         self.test_mode = test_mode
-        self.run_dir = create_run_directory(base_output_dir, test_mode)
-        self.metadata = create_run_metadata(self.run_dir, "TEST" if test_mode else "FULL")
         
-        # Initialize modules
-        self.category_scraper = CategoryScraper(self.run_dir, test_mode)
-        self.product_collector = ProductCollector(self.run_dir, test_mode)
-        self.product_scraper = ProductScraper(self.run_dir, save_screenshots=True)
-        self.pdf_scraper = ProductPDFScraper(self.run_dir)
-        self.pdf_downloader = PDFDownloader(self.run_dir)
+        # Create run directory
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        mode_suffix = "_TEST" if test_mode else "_FULL"
+        run_id = f"{config.CLIENT_NAME}Scrape_{timestamp}{mode_suffix}"
+        self.run_dir = Path(config.BASE_OUTPUT_DIR) / run_id
+        self.run_dir.mkdir(parents=True, exist_ok=True)
         
+        # Create subdirectories
+        (self.run_dir / "products").mkdir(exist_ok=True)
+        (self.run_dir / "categories").mkdir(exist_ok=True)
+        (self.run_dir / "screenshots").mkdir(exist_ok=True)
+        (self.run_dir / "pdfs").mkdir(exist_ok=True)
+        (self.run_dir / "reports").mkdir(exist_ok=True)
+        (self.run_dir / "logs").mkdir(exist_ok=True)
+        
+        # Initialize modules with config
+        self.category_scraper = CategoryScraper(config, self.run_dir, test_mode)
+        self.product_collector = ProductCollector(config, self.run_dir, test_mode)
+        self.product_scraper = ProductScraper(config, strategies, self.run_dir, save_screenshots=True)
+        self.pdf_scraper = ProductPDFScraper(config, self.run_dir)
+        self.pdf_downloader = PDFDownloader(config, self.run_dir)
+        
+        self.run_id = run_id
         print(f"📁 Run directory: {self.run_dir}")
-        print(f"📝 Run ID: {self.metadata['run_id']}")
+        print(f"📝 Run ID: {run_id}")
         
         if test_mode:
             print(f"⚠️  Test mode: Limited scraping enabled")
@@ -50,7 +68,6 @@ class AgarScraperOrchestrator:
             print("="*60)
             
             categories = await self.category_scraper.run()
-            update_run_metadata(self.run_dir, {"categories_found": len(categories)})
             
             # Step 2: Collect product URLs
             print("\n" + "="*60)
@@ -58,17 +75,15 @@ class AgarScraperOrchestrator:
             print("="*60)
             
             all_products = await self.product_collector.collect_all_products(categories)
-            update_run_metadata(self.run_dir, {"products_found": len(all_products)})
             
             if not all_products:
                 print("⚠️ No products found!")
-                update_run_metadata(self.run_dir, {"status": "FAILED", "error": "No products found"})
                 return
             
             # Apply test limit
-            if self.test_mode and len(all_products) > TEST_PRODUCT_LIMIT:
-                print(f"\n⚠️ Limiting to {TEST_PRODUCT_LIMIT} products for test mode")
-                all_products = all_products[:TEST_PRODUCT_LIMIT]
+            if self.test_mode and len(all_products) > self.config.TEST_PRODUCT_LIMIT:
+                print(f"\n⚠️ Limiting to {self.config.TEST_PRODUCT_LIMIT} products for test mode")
+                all_products = all_products[:self.config.TEST_PRODUCT_LIMIT]
             
             # Step 3: Scrape product details (CSS extraction)
             print("\n" + "="*60)
@@ -79,7 +94,6 @@ class AgarScraperOrchestrator:
             
             if not products_with_details:
                 print("⚠️ No product details extracted!")
-                update_run_metadata(self.run_dir, {"status": "FAILED", "error": "No product details extracted"})
                 return
             
             # Step 4: Extract PDF links (JavaScript)
@@ -107,26 +121,15 @@ class AgarScraperOrchestrator:
             # Generate final report
             self.generate_final_report(successful, all_products, start_time, download_stats)
             
-            # Update metadata
-            update_run_metadata(self.run_dir, {
-                "status": "COMPLETED",
-                "end_time": datetime.now().isoformat(),
-                "duration": str(datetime.now() - start_time),
-                "products_scraped": len(successful),
-                "products_failed": len(all_products) - len(successful)
-            })
-            
             # Display summary
             self.display_summary(successful, all_products, start_time)
             
         except KeyboardInterrupt:
             print("\n\n⚠️ Scraping interrupted!")
-            update_run_metadata(self.run_dir, {"status": "INTERRUPTED"})
             sys.exit(0)
             
         except Exception as e:
             print(f"\n❌ Fatal error: {e}")
-            update_run_metadata(self.run_dir, {"status": "ERROR", "error": str(e)})
             import traceback
             traceback.print_exc()
             sys.exit(1)
@@ -163,7 +166,6 @@ class AgarScraperOrchestrator:
             merged.append(product)
             
             # Re-save individual product file with merged data
-            from utils import sanitize_filename
             filename = sanitize_filename(product_name)
             save_json(product, self.run_dir / "products" / f"{filename}.json")
         
@@ -191,7 +193,8 @@ class AgarScraperOrchestrator:
                 category_stats[cat]["with_pds"] += 1
         
         report = {
-            "run_id": self.metadata["run_id"],
+            "run_id": self.run_id,
+            "client": self.config.CLIENT_NAME,
             "start_time": start_time.isoformat(),
             "end_time": datetime.now().isoformat(),
             "duration": str(datetime.now() - start_time),
@@ -241,52 +244,56 @@ class AgarScraperOrchestrator:
 async def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="Agar.com.au Product Scraper - Complete Workflow",
+        description="3DN Multi-Client Scraper Template",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py --test           # Run in test mode
-  python main.py --full           # Run in full mode
-  python main.py -o scrapes       # Custom output directory
+  python main.py --client agar --test    # Test Agar scraper (2 categories)
+  python main.py --client agar --full    # Full Agar scrape
+  python main.py --client xyz --test     # Test another client
 
-Individual Module Usage:
-  python category_scraper.py      # Discover categories only
-  python product_collector.py     # Collect product URLs only
-  python product_scraper.py       # Scrape product details only
-
-Output Structure:
-  base_output_dir/
-  └── AgarScrape_YYYYMMDD_HHMMSS/
-      ├── run_metadata.json
-      ├── categories.json
-      ├── all_products_list.json
-      ├── all_products_data.json
-      ├── categories/
-      │   └── [category-slug]/
-      │       ├── products_list.json
-      │       └── [product].json
-      ├── products/
-      ├── screenshots/
-      ├── logs/
-      └── reports/
+Available Clients:
+  - agar    : Agar Cleaning Products (agar.com.au)
+  
+Add new clients by creating:
+  config/clients/[client_name]/client_config.py
+  config/clients/[client_name]/extraction_strategies.py
         """
     )
     
-    mode_group = parser.add_mutually_exclusive_group(required=True)
-    mode_group.add_argument('--test', '-t', action='store_true', help='Test mode')
-    mode_group.add_argument('--full', '-f', action='store_true', help='Full mode')
+    parser.add_argument('--client', '-c', type=str, required=True,
+                       help='Client name (e.g., agar)')
     
-    parser.add_argument('--output', '-o', type=str, default='agar_scrapes',
-                       help='Base output directory')
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument('--test', '-t', action='store_true',
+                           help='Test mode (limited scraping)')
+    mode_group.add_argument('--full', '-f', action='store_true',
+                           help='Full scrape mode')
     
     args = parser.parse_args()
     
+    # Load client configuration and strategies
+    try:
+        config = ConfigLoader.load_client_config(args.client)
+        strategies = ConfigLoader.load_client_strategies(args.client)
+    except FileNotFoundError as e:
+        print(f"\n❌ Error: {e}")
+        print(f"\nAvailable clients:")
+        print(f"  - agar")
+        print(f"\nTo add a new client, create:")
+        print(f"  config/clients/{args.client}/client_config.py")
+        print(f"  config/clients/{args.client}/extraction_strategies.py")
+        sys.exit(1)
+    
+    # Display header
     print("\n" + "="*60)
-    print(" AGAR.COM.AU PRODUCT SCRAPER".center(60))
+    print(f"{'3DN SCRAPER - ' + config.CLIENT_NAME.upper():^60}")
     print("="*60)
     
-    orchestrator = AgarScraperOrchestrator(
-        base_output_dir=args.output,
+    # Create and run orchestrator
+    orchestrator = ScraperOrchestrator(
+        config=config,
+        strategies=strategies,
         test_mode=args.test
     )
     

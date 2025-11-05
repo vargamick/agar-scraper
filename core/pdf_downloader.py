@@ -11,21 +11,25 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import sys
 
-from utils import sanitize_filename, save_json
+from typing import Type
+from config.base_config import BaseConfig
+from core.utils import sanitize_filename, save_json
 
 
 class PDFDownloader:
     """Downloads PDF files from URLs with retry logic and error handling"""
     
-    def __init__(self, run_dir: Path, max_retries: int = 3, timeout: int = 30):
+    def __init__(self, config: Type[BaseConfig], run_dir: Path, max_retries: int = 3, timeout: int = 30):
         """
         Initialize PDF downloader
         
         Args:
+            config: Client configuration object
             run_dir: Run directory path
             max_retries: Maximum number of download retry attempts
             timeout: Timeout in seconds for each download
         """
+        self.config = config
         self.run_dir = Path(run_dir)
         self.pdf_output_dir = self.run_dir / "PDFs"
         self.pdf_metadata_dir = self.run_dir / "pdfs"

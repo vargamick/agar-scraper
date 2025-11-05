@@ -13,16 +13,18 @@ from datetime import datetime
 from crawl4ai import AsyncWebCrawler, CacheMode
 from crawl4ai.async_configs import CrawlerRunConfig
 from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
+from typing import Type
 
-from config import BASE_URL, KNOWN_CATEGORIES, USER_AGENT, PAGE_TIMEOUT, TEST_CATEGORY_LIMIT
-from utils import save_json, load_json
+from config.base_config import BaseConfig
+from core.utils import save_json, load_json
 
 class CategoryScraper:
     """Discover and scrape product categories"""
     
-    def __init__(self, output_dir: Path = None, test_mode: bool = False):
+    def __init__(self, config: Type[BaseConfig], output_dir: Path = None, test_mode: bool = False):
+        self.config = config
         self.output_dir = output_dir or Path(".")
-        self.base_url = BASE_URL
+        self.base_url = config.BASE_URL
         self.test_mode = test_mode
     
     async def discover_categories(self) -> List[Dict]:
@@ -32,7 +34,7 @@ class CategoryScraper:
         # For now, use known categories as discovery might have issues
         # TODO: Implement actual discovery from website navigation
         categories = []
-        for category_slug in KNOWN_CATEGORIES:
+        for category_slug in self.config.KNOWN_CATEGORIES:
             categories.append({
                 "name": category_slug.replace("-", " ").title(),
                 "slug": category_slug,
@@ -42,9 +44,9 @@ class CategoryScraper:
         total_found = len(categories)
         
         # Apply test mode limit if enabled
-        if self.test_mode and len(categories) > TEST_CATEGORY_LIMIT:
-            categories = categories[:TEST_CATEGORY_LIMIT]
-            print(f"✓ Using {TEST_CATEGORY_LIMIT} categories for test mode (from {total_found} known)")
+        if self.test_mode and len(categories) > self.config.TEST_CATEGORY_LIMIT:
+            categories = categories[:self.config.TEST_CATEGORY_LIMIT]
+            print(f"✓ Using {self.config.TEST_CATEGORY_LIMIT} categories for test mode (from {total_found} known)")
         else:
             print(f"✓ Using {total_found} known categories")
         
@@ -54,14 +56,14 @@ class CategoryScraper:
         """Scrape a single category page for metadata"""
         # This could be extended to get category descriptions, images, etc.
         async with AsyncWebCrawler() as crawler:
-            config = CrawlerRunConfig(
+            crawler_config = CrawlerRunConfig(
                 cache_mode=CacheMode.BYPASS,
-                page_timeout=PAGE_TIMEOUT,
-                user_agent=USER_AGENT
+                page_timeout=self.config.PAGE_TIMEOUT,
+                user_agent=self.config.USER_AGENT
             )
             
             try:
-                result = await crawler.arun(category_url, config=config)
+                result = await crawler.arun(category_url, config=crawler_config)
                 if result.success:
                     # Extract any category-specific metadata
                     return {

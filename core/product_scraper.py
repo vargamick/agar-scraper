@@ -1,6 +1,10 @@
 """
-Product detail scraper module for Agar scraper
-Scrapes detailed information from individual product pages
+3DN Scraper Template - Product Detail Scraper Module
+Version: 1.0.0
+
+Scrapes detailed information from individual product pages using CSS extraction.
+Works with any client configuration through the config loader system.
+
 ONLY handles CSS-based extraction (name, image, overview, description, SKU)
 For PDF links, use product_pdf_scraper.py
 """
@@ -9,52 +13,64 @@ import json
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Type
 from datetime import datetime
 
 from crawl4ai import AsyncWebCrawler, CacheMode
 from crawl4ai.async_configs import CrawlerRunConfig
 from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
 
-from config import BASE_URL, USER_AGENT, DETAIL_PAGE_TIMEOUT, RATE_LIMIT_DELAY
-from utils import save_json, load_json, clean_product_name, save_screenshot, sanitize_filename
+from config.config_loader import ConfigLoader
+from config.base_config import BaseConfig
+from core.utils import save_json, load_json, clean_product_name, save_screenshot, sanitize_filename
 
 class ProductScraper:
-    """Scrape product details (NO PDF EXTRACTION - use product_pdf_scraper.py for PDFs)"""
+    """Scrape product details (NO PDF EXTRACTION - use product_pdf_scraper.py for PDFs)
     
-    def __init__(self, output_dir: Path = None, save_screenshots: bool = True):
+    This scraper is client-agnostic and uses the config loader system to work
+    with any client deployment.
+    """
+    
+    def __init__(self, config: Type[BaseConfig], extraction_strategy, 
+                 output_dir: Path = None, save_screenshots: bool = True):
+        """Initialize product scraper with client configuration
+        
+        Args:
+            config: Client configuration class
+            extraction_strategy: Client extraction strategy class
+            output_dir: Output directory for scraped data
+            save_screenshots: Whether to save page screenshots
+        """
+        self.config = config
+        self.extraction_strategy = extraction_strategy
         self.output_dir = output_dir or Path(".")
-        self.base_url = BASE_URL
+        self.base_url = config.BASE_URL
         self.save_screenshots = save_screenshots
     
     async def scrape_product_details(self, product_info: Dict) -> Optional[Dict]:
-        """Scrape product details using CSS selectors (name, description, images, etc.)"""
+        """Scrape product details using client-specific CSS selectors
         
-        # Schema for product details ONLY
-        product_detail_schema = {
-            "name": "Product Details",
-            "baseSelector": "body",
-            "fields": [
-                {"name": "product_name", "selector": "main h1.product_title, div.product h1.product_title, h1.product_title.entry-title", "type": "text"},
-                {"name": "main_image", "selector": "img.wp-post-image, .woocommerce-product-gallery__wrapper img:first-child", "type": "attribute", "attribute": "src"},
-                {"name": "gallery_images", "selector": ".woocommerce-product-gallery img", "type": "list", "attribute": "src"},
-                {"name": "product_overview", "selector": ".woocommerce-product-details__short-description", "type": "text"},
-                {"name": "product_sku", "selector": "span.sku", "type": "text"},
-                {"name": "product_categories", "selector": "span.posted_in a", "type": "list"},
-                {"name": "product_description", "selector": "#tab-description", "type": "text"}
-            ]
-        }
+        Args:
+            product_info: Dictionary with product information including URL
+            
+        Returns:
+            Dictionary with extracted product data or None if extraction failed
+        """
+        
+        # Get extraction schema from client strategy
+        product_detail_schema = self.extraction_strategy.get_product_detail_schema()
         
         # Simple CSS extraction - NO JavaScript
         extraction_strategy = JsonCssExtractionStrategy(schema=product_detail_schema)
         
-        config = CrawlerRunConfig(
+        # Use client-specific configuration
+        crawler_config = CrawlerRunConfig(
             extraction_strategy=extraction_strategy,
             cache_mode=CacheMode.BYPASS,
             screenshot=self.save_screenshots,
             wait_for="css:.product_title",
-            page_timeout=DETAIL_PAGE_TIMEOUT,
-            user_agent=USER_AGENT,
+            page_timeout=self.config.DETAIL_PAGE_TIMEOUT,
+            user_agent=self.config.USER_AGENT,
             delay_before_return_html=2.0
         )
         
@@ -62,7 +78,7 @@ class ProductScraper:
             print(f"  → Scraping product details (CSS)...")
             
             try:
-                result = await crawler.arun(product_info["url"], config=config)
+                result = await crawler.arun(product_info["url"], config=crawler_config)
                 
                 if result.success and result.extracted_content:
                     try:
@@ -158,17 +174,24 @@ class ProductScraper:
             else:
                 failed.append(product)
             
-            # Rate limiting
+            # Rate limiting - use client config
             if i < len(products):
-                await asyncio.sleep(RATE_LIMIT_DELAY)
+                await asyncio.sleep(self.config.RATE_LIMIT_DELAY)
         
         return successful
 
 
 async def main():
-    """Standalone execution"""
+    """Standalone execution for product scraping"""
     parser = argparse.ArgumentParser(
-        description="Agar Product Detail Scraper - CSS-based extraction only"
+        description="3DN Scraper Template - Product Detail Scraper (CSS-based extraction)"
+    )
+    
+    parser.add_argument(
+        '--client', '-c',
+        type=str,
+        required=True,
+        help='Client name (e.g., agar)'
     )
     
     parser.add_argument(
@@ -199,15 +222,33 @@ async def main():
     
     args = parser.parse_args()
     
+    # Load client configuration
+    try:
+        config = ConfigLoader.load_client_config(args.client)
+        strategies = ConfigLoader.load_client_strategies(args.client)
+        
+        if strategies is None:
+            print(f"❌ Error: No extraction strategies found for client '{args.client}'")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"❌ Error loading client configuration: {e}")
+        sys.exit(1)
+    
     output_dir = Path(args.output)
     output_dir.mkdir(exist_ok=True)
     (output_dir / "products").mkdir(exist_ok=True)
     
     print("\n" + "="*60)
-    print(" AGAR PRODUCT DETAIL SCRAPER (CSS ONLY)".center(60))
+    print(f" 3DN PRODUCT SCRAPER - {config.CLIENT_FULL_NAME}".center(60))
     print("="*60)
     
-    scraper = ProductScraper(output_dir=output_dir, save_screenshots=args.screenshots)
+    scraper = ProductScraper(
+        config=config,
+        extraction_strategy=strategies,
+        output_dir=output_dir, 
+        save_screenshots=args.screenshots
+    )
     
     if args.url:
         # Single product mode

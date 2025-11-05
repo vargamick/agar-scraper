@@ -13,16 +13,18 @@ from datetime import datetime
 
 from crawl4ai import AsyncWebCrawler, CacheMode
 from crawl4ai.async_configs import CrawlerRunConfig
+from typing import Type
 
-from config import BASE_URL, USER_AGENT, DETAIL_PAGE_TIMEOUT, RATE_LIMIT_DELAY
-from utils import save_json, load_json, sanitize_filename
+from config.base_config import BaseConfig
+from core.utils import save_json, load_json, sanitize_filename, get_rate_limit_delay
 
 class ProductPDFScraper:
     """Scrape PDF download links using JavaScript (ONLY PDFs - use product_scraper.py for product details)"""
     
-    def __init__(self, output_dir: Path = None):
+    def __init__(self, config: Type[BaseConfig], output_dir: Path = None):
+        self.config = config
         self.output_dir = output_dir or Path(".")
-        self.base_url = BASE_URL
+        self.base_url = config.BASE_URL
     
     async def scrape_pdf_links(self, product_url: str, product_name: str = "Product") -> Optional[Dict]:
         """Extract PDF download links using 2-step process:
@@ -35,14 +37,14 @@ class ProductPDFScraper:
                 # STEP 1: Get product page and find SDS/PDS link
                 print(f"  → Step 1: Finding SDS/PDS page link...")
                 
-                config = CrawlerRunConfig(
+                crawler_config = CrawlerRunConfig(
                     cache_mode=CacheMode.BYPASS,
                     wait_for="css:body",
-                    page_timeout=DETAIL_PAGE_TIMEOUT,
-                    user_agent=USER_AGENT
+                    page_timeout=self.config.DETAIL_PAGE_TIMEOUT,
+                    user_agent=self.config.USER_AGENT
                 )
                 
-                result = await crawler.arun(product_url, config)
+                result = await crawler.arun(product_url, crawler_config)
                 
                 if not result.success or not result.html:
                     print(f"  ✗ Failed to fetch product page")
@@ -67,7 +69,7 @@ class ProductPDFScraper:
                 # STEP 2: Fetch SDS/PDS page and extract PDF URLs
                 print(f"  → Step 2: Extracting PDF URLs from SDS/PDS page...")
                 
-                result2 = await crawler.arun(sds_page_url, config)
+                result2 = await crawler.arun(sds_page_url, crawler_config)
                 
                 if not result.success:
                     print(f"  ✗ Crawler failed")
@@ -200,7 +202,8 @@ class ProductPDFScraper:
             
             # Rate limiting
             if i < len(products):
-                await asyncio.sleep(RATE_LIMIT_DELAY)
+                delay = get_rate_limit_delay(self.config)
+                await asyncio.sleep(delay)
         
         return successful
 

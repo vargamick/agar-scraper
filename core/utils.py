@@ -4,9 +4,12 @@ Shared utilities for Agar scraper
 import json
 import re
 import base64
+import random
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Type
 from datetime import datetime
+
+from config.base_config import BaseConfig
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize filename for saving"""
@@ -88,3 +91,15 @@ def update_run_metadata(run_dir: Path, updates: Dict) -> None:
         metadata = load_json(metadata_path)
         metadata.update(updates)
         save_json(metadata, metadata_path)
+
+def get_rate_limit_delay(config: Type[BaseConfig]) -> float:
+    """
+    Get a random rate limit delay based on config settings
+    
+    Args:
+        config: Client configuration object
+        
+    Returns:
+        Random delay in seconds between RATE_LIMIT_MIN and RATE_LIMIT_MAX
+    """
+    return random.uniform(config.RATE_LIMIT_MIN, config.RATE_LIMIT_MAX)

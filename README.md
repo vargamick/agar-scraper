@@ -1,184 +1,438 @@
-# Agar Scraper - Modular Web Scraper for Agar Cleaning Products
+# 3DN Scraper Template - Multi-Client Web Scraping Framework
 
-A modular, production-ready web scraper for extracting product information from agar.com.au.
+**Version:** 1.0.0 | **Status:** Production Ready
 
-## Features
+A production-ready, client-agnostic web scraping framework designed for deploying and managing multiple client scraping projects. Built with modular architecture and configuration-driven design for maximum reusability and maintainability.
 
-- **Modular Architecture**: Separate modules for different scraping tasks
-- **Standalone Execution**: Each module can run independently
-- **Run Management**: Timestamped directories for each scraping session
-- **Test Mode**: Limited scraping for testing and development
-- **Comprehensive Reporting**: Detailed statistics and download tracking
-- **Screenshot Capture**: Product page screenshots for verification
-- **PDF Document Download**: Automatic download of SDS and PDS documents
+---
 
-## Installation
+## 🎯 Overview
+
+The **3DN Scraper Template** is a sophisticated web scraping framework that enables rapid deployment of scraping projects for multiple clients. Originally developed for Agar Cleaning Supplies, it has been refactored into a flexible template that can be adapted to any e-commerce or product catalog website.
+
+### Key Principles
+
+- **Client-Agnostic Core**: Core modules work universally across all client deployments
+- **Configuration-Driven**: Client-specific logic contained in configuration files
+- **Strategy Pattern**: CSS selectors and extraction logic separated by client
+- **Production Ready**: Battle-tested with comprehensive error handling and logging
+- **Easy Deployment**: Deploy new clients in minutes with automation scripts
+
+---
+
+## ✨ Features
+
+### Multi-Client Architecture
+- 🏢 **Multiple Client Support**: Manage unlimited client deployments from single codebase
+- 🔧 **Configuration Loader**: Dynamic client configuration loading system
+- 📋 **Client Templates**: Pre-configured templates for rapid deployment
+- 🔄 **Hot-Swappable**: Switch between clients without code changes
+
+### Scraping Capabilities
+- 🗂️ **Hierarchical Categories**: Automatic subcategory detection and recursive scraping
+- 📦 **Product Details**: Comprehensive product data extraction (name, images, descriptions, SKUs)
+- 📄 **Document Handling**: PDF extraction and download (SDS, PDS, datasheets)
+- 📸 **Screenshot Capture**: Page screenshots for verification and debugging
+- 🧪 **Test Mode**: Limited scraping for testing and development
+
+### Operational Features
+- ⚡ **Modular Design**: Each component can run standalone or as part of workflow
+- 📁 **Run Management**: Timestamped directories for organized output
+- 🔄 **Resume Capability**: Checkpoint system for interrupted runs
+- 📊 **Comprehensive Reporting**: Detailed statistics and download tracking
+- 🛡️ **Error Resilience**: Automatic retries with exponential backoff
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 ```bash
-# Requires Python 3.11+
-pip install crawl4ai
+# Python 3.11+ required
+python --version
 
-# Clone or download the agar_scraper directory
-cd agar_scraper
+# Install dependencies
+pip install crawl4ai aiohttp
 ```
 
-## Usage
+### Installation
 
-### Complete Workflow
+```bash
+# Clone or download the repository
+git clone <repository-url>
+cd 3dn-scraper-template
 
-Run the complete scraping workflow:
+# Verify installation
+python main.py --help
+```
+
+### First Run (Agar Example)
 
 ```bash
 # Test mode (limited scraping)
-python main.py --test
+python main.py --client agar --test
 
-# Full mode (complete scraping)
-python main.py --full
-
-# Custom output directory
-python main.py --full -o /path/to/output
+# Full scraping run
+python main.py --client agar --full
 ```
 
-### Individual Modules
+---
 
-Each module can be run independently:
+## 📚 Documentation
 
-#### 1. Category Discovery
+Comprehensive documentation is available in the `/docs` directory:
+
+| Document | Description |
+|----------|-------------|
+| **[Client Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md)** | Complete guide for deploying new clients |
+| **[Configuration Guide](docs/configuration-guide.md)** | Configuration reference and examples |
+| **[Extraction Strategies](docs/extraction-strategies.md)** | CSS selector guide and testing workflows |
+| **[API Reference](docs/api-reference.md)** | Complete API documentation for all modules |
+| **[Architecture Guide](docs/architecture.md)** | System architecture and design patterns |
+| **[Troubleshooting](docs/troubleshooting.md)** | Common issues and solutions |
+
+---
+
+## 🏗️ Architecture
+
+```
+3DN Scraper Template
+│
+├── config/                      # Configuration system
+│   ├── base_config.py          # Base configuration class
+│   ├── config_loader.py        # Dynamic client loader
+│   └── clients/                # Client deployments
+│       ├── agar/               # Example: Agar client
+│       │   ├── client_config.py
+│       │   └── extraction_strategies.py
+│       └── example_client/     # Template for new clients
+│
+├── core/                        # Core scraping modules
+│   ├── category_scraper.py     # Category discovery
+│   ├── product_collector.py    # Product URL collection
+│   ├── product_scraper.py      # Product detail extraction
+│   ├── product_pdf_scraper.py  # PDF link extraction
+│   ├── pdf_downloader.py       # PDF file download
+│   └── utils.py                # Shared utilities
+│
+├── strategies/                  # Strategy interfaces
+│   └── base_strategy.py        # Base extraction strategy
+│
+├── scripts/                     # Automation scripts
+│   ├── deploy_new_client.py    # Client deployment wizard
+│   ├── validate_config.py      # Configuration validation
+│   ├── test_connection.py      # Connection testing
+│   └── test_extraction.py      # Extraction testing
+│
+├── docs/                        # Documentation
+└── main.py                      # Main entry point
+```
+
+---
+
+## 💼 Client Deployment
+
+### Deploy a New Client
+
+Use the automated deployment wizard:
 
 ```bash
-# Discover all categories
-python category_scraper.py -o ./output
-
-# Test mode (limited categories)
-python category_scraper.py --test -o ./output
+python scripts/deploy_new_client.py
 ```
 
-#### 2. Product URL Collection
+The wizard guides you through:
+1. Basic client information (name, URL, categories)
+2. CSS selector identification
+3. Configuration file generation
+4. Extraction strategy creation
+5. Validation and testing
+
+### Manual Client Creation
+
+See the [Client Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md) for detailed instructions on:
+- Creating client configuration files
+- Defining extraction strategies
+- Testing and validation
+- Deployment best practices
+
+---
+
+## 🎮 Usage
+
+### Command Line Interface
 
 ```bash
-# Collect from all categories (requires categories.json)
-python product_collector.py -c categories.json -o ./output
+# Complete workflow with client selection
+python main.py --client <client_name> [--test|--full] [options]
 
-# Collect from single category
-python product_collector.py --category toilet-bathroom-cleaners -o ./output
+# Examples:
+python main.py --client agar --test              # Test mode
+python main.py --client agar --full              # Full run
+python main.py --client myclient --full -o ./output  # Custom output
 
-# Test mode (limited products)
-python product_collector.py --test -c categories.json -o ./output
+# List available clients
+python main.py --list-clients
+
+# Validate client configuration
+python scripts/validate_config.py agar
 ```
 
-#### 3. Product Detail Scraping
+### Modular Execution
+
+Each core module can run independently:
 
 ```bash
-# Scrape single product
-python product_scraper.py --url https://agar.com.au/product/all-fresh/ -o ./output
+# Category discovery
+python -m core.category_scraper --client agar -o ./output
 
-# Scrape multiple products (requires products.json)
-python product_scraper.py -p products.json -o ./output
+# Product collection
+python -m core.product_collector --client agar -o ./output
 
-# Without screenshots
-python product_scraper.py -p products.json -o ./output --no-screenshots
+# Product scraping
+python -m core.product_scraper --client agar --url <product_url>
+
+# PDF extraction
+python -m core.product_pdf_scraper --client agar --products products.json
+
+# PDF download
+python -m core.pdf_downloader --run-dir <run_directory>
 ```
 
-#### 4. PDF Document Download
+---
 
-```bash
-# Download PDFs from a completed scraping run
-python pdf_downloader.py -r agar_scrapes/AgarScrape_20251031_120000
-
-# With custom retry settings
-python pdf_downloader.py -r agar_scrapes/AgarScrape_20251031_120000 --retries 5 --timeout 60
-```
-
-**Note**: The PDF downloader can be run standalone after a scraping run, or it's automatically executed as part of the complete workflow when using `python main.py`.
-
-## Output Structure
+## 📊 Output Structure
 
 ```
-agar_scrapes/
-└── AgarScrape_20251031_120000/
+<client>_scrapes/
+└── <Client>Scrape_20251105_120000/
     ├── run_metadata.json          # Run information
     ├── categories.json             # All categories
     ├── all_products_list.json     # All product URLs
     ├── all_products_data.json     # All scraped products
     ├── categories/
     │   └── [category-slug]/
-    │       ├── products_list.json # Products in category
-    │       ├── [product].json     # Individual product data
-    │       └── [product]_screenshot.png
-    ├── products/                  # All products (duplicated)
-    ├── pdfs/                      # PDF metadata (URLs)
-    │   └── [product]_pdfs.json
-    ├── PDFs/                      # Downloaded PDF documents
+    │       ├── subcategories.json  # If hierarchical
+    │       ├── products_list.json
+    │       └── [subcategory-slug]/ # Nested structure
+    ├── products/                   # Individual product JSON
+    ├── pdfs/                       # PDF metadata
+    ├── PDFs/                       # Downloaded PDFs
     │   └── [product]/
     │       ├── [product]_SDS.pdf
     │       └── [product]_PDS.pdf
-    ├── screenshots/               # All screenshots
-    ├── logs/                      # Checkpoints and logs
+    ├── screenshots/                # Page screenshots
+    ├── logs/                       # Checkpoints
     └── reports/
-        ├── final_report.json      # Summary statistics
-        └── pdf_download_report.json  # PDF download statistics
+        ├── final_report.json
+        └── pdf_download_report.json
 ```
 
-## Product Data Schema
+---
 
-Each product JSON contains:
+## 🔧 Configuration
 
-```json
-{
-  "product_name": "Product Name",
-  "product_url": "https://...",
-  "product_image_url": "https://...",
-  "product_overview": "Short description",
-  "product_description": "Full description",
-  "product_skus": "SKU123",
-  "product_categories": ["Category"],
-  "sds_url": "https://.../SDS.pdf",
-  "pds_url": "https://.../PDS.pdf",
-  "scraped_at": "2025-10-31T12:00:00",
-  "category": "Category Name",
-  "category_slug": "category-slug"
-}
+### Client Configuration Structure
+
+```python
+# config/clients/myclient/client_config.py
+from config.base_config import BaseConfig
+
+class ClientConfig(BaseConfig):
+    CLIENT_NAME = "myclient"
+    CLIENT_FULL_NAME = "My Client Company"
+    BASE_URL = "https://myclient.com"
+    
+    CATEGORY_URL_PATTERN = f"{BASE_URL}/category/{{slug}}/"
+    PRODUCT_URL_PATTERN = f"{BASE_URL}/product/{{slug}}/"
+    
+    OUTPUT_PREFIX = "myclient"
+    KNOWN_CATEGORIES = ["category-1", "category-2"]
 ```
 
-## Configuration
+### Extraction Strategies
 
-Edit `config.py` to modify:
-- Base URL
-- Test mode limits
-- Timeouts and delays
-- User agent
-- Known categories
+```python
+# config/clients/myclient/extraction_strategies.py
+class MyclientExtractionStrategy:
+    @staticmethod
+    def get_product_detail_schema():
+        return {
+            "name": "Product Details",
+            "baseSelector": "body",
+            "fields": [
+                {"name": "product_name", "selector": "h1.title", "type": "text"},
+                {"name": "main_image", "selector": "img.main", "type": "attribute", "attribute": "src"},
+                # ... more fields
+            ]
+        }
+```
 
-## Requirements
+See [Configuration Guide](docs/configuration-guide.md) for complete details.
+
+---
+
+## 📦 Example: Agar Client
+
+The Agar Cleaning Supplies deployment serves as a reference implementation:
+
+```bash
+# Run Agar scraper
+python main.py --client agar --full
+
+# Test Agar extraction
+python scripts/test_extraction.py agar
+
+# Validate Agar configuration
+python scripts/validate_config.py agar
+```
+
+### Agar Features
+
+- **Products**: 500+ cleaning products
+- **Categories**: 50+ categories with 3-level hierarchy
+- **Documents**: SDS and PDS PDF extraction and download
+- **Images**: Product screenshots for verification
+- **Validation**: 24/24 configuration checks passing
+
+---
+
+## 🛠️ Development
+
+### Adding Custom Features
+
+1. **Custom Extraction Logic**: Override methods in extraction strategy class
+2. **Additional Fields**: Extend product schema in client configuration
+3. **Custom Processing**: Add methods to core modules (maintain backward compatibility)
+4. **Client-Specific Tools**: Create in `config/clients/<client>/` directory
+
+### Testing
+
+```bash
+# Test client connection
+python scripts/test_connection.py <client_name>
+
+# Test extraction strategies
+python scripts/test_extraction.py <client_name>
+
+# Validate configuration
+python scripts/validate_config.py <client_name>
+
+# Run in test mode
+python main.py --client <client_name> --test
+```
+
+---
+
+## 📈 Performance
+
+- **Rate Limiting**: Configurable delays between requests (2-5 seconds default)
+- **Concurrent Processing**: Async operations where applicable
+- **Cache Management**: Bypass caching for fresh data
+- **Timeout Handling**: Configurable timeouts per page type
+- **Error Recovery**: Automatic retries with exponential backoff
+- **Resource Management**: Proper cleanup and connection pooling
+
+---
+
+## 🚨 Error Handling
+
+- ✅ Automatic retries with different extraction strategies
+- ✅ Checkpoint saving for resume capability
+- ✅ Detailed error logging with context
+- ✅ Graceful interruption handling (Ctrl+C)
+- ✅ Configuration validation before execution
+- ✅ Connection testing before scraping
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| No products found | Site structure changed - update extraction strategies |
+| Timeout errors | Increase PAGE_TIMEOUT in client config |
+| Rate limiting | Adjust RATE_LIMIT_MIN/MAX in client config |
+| PDF download failures | Check network, increase retries/timeout |
+| Configuration errors | Run `validate_config.py` for detailed diagnostics |
+
+See [Troubleshooting Guide](docs/troubleshooting.md) for comprehensive solutions.
+
+---
+
+## 📋 Requirements
 
 - Python 3.11+
 - crawl4ai library
 - aiohttp library
 - asyncio support
 
-## Error Handling
+```bash
+pip install crawl4ai aiohttp
+```
 
-- Automatic retries with different extraction strategies
-- Checkpoint saving for resume capability
-- Detailed error reporting in logs
-- Graceful interruption handling (Ctrl+C)
+---
 
-## Performance
+## 🤝 Contributing
 
-- Rate limiting between requests (2 seconds default)
-- Concurrent processing where applicable
-- Cache bypassing for fresh data
-- Timeout management for stuck pages
+### Client Contributions
 
-## Troubleshooting
+To share a new client deployment:
+1. Create client configuration and strategies
+2. Test thoroughly with validation scripts
+3. Document any client-specific quirks
+4. Submit with example run output
 
-1. **No products found**: Site structure may have changed, check extraction strategies
-2. **Missing downloads**: SDS/PDS links may require JavaScript interaction
-3. **Timeout errors**: Increase PAGE_TIMEOUT in config.py
-4. **Rate limiting**: Adjust RATE_LIMIT_DELAY in config.py
-5. **PDF download failures**: Check network connection, increase --retries or --timeout parameters
-6. **SSL errors**: The downloader automatically handles SSL certificate issues
+### Core Framework Improvements
 
-## License
+- Maintain backward compatibility
+- Add unit tests for new features
+- Update relevant documentation
+- Follow existing code style
 
-For internal use only. Respect website terms of service and robots.txt.
+---
+
+## 📝 Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2025-11-05 | Multi-client template release |
+| 0.9.0 | 2025-10-31 | Agar scraper refactoring |
+| 0.5.0 | 2025-10-15 | Initial Agar scraper |
+
+---
+
+## 🔗 Related Projects
+
+- [Crawl4AI](https://github.com/unclecode/crawl4ai) - Core scraping engine
+- [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/) - HTML parsing
+- [aiohttp](https://docs.aiohttp.org/) - Async HTTP client
+
+---
+
+## 📄 License
+
+For internal use only. Respect website terms of service and robots.txt when deploying to new clients.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [Crawl4AI](https://github.com/unclecode/crawl4ai)
+- Inspired by modular scraping architectures
+- Developed and tested with Agar Cleaning Supplies deployment
+
+---
+
+## 📞 Support
+
+- 📖 [Documentation](docs/)
+- 🐛 [Troubleshooting Guide](docs/troubleshooting.md)
+- 💬 [API Reference](docs/api-reference.md)
+- 🚀 [Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md)
+
+---
+
+**Happy Scraping! 🚀**
