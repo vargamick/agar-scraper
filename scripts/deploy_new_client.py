@@ -123,8 +123,8 @@ class ClientConfig(BaseConfig):
     OUTPUT_PREFIX = "{output_prefix}"
     BASE_OUTPUT_DIR = "{output_dir}"
     
-    # Known categories (update after discovery)
-    KNOWN_CATEGORIES = []
+    # NOTE: Categories are discovered dynamically
+    # No manual category configuration is required
     
     # PDF configuration (update based on client website)
     HAS_SDS_DOCUMENTS = False

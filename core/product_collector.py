@@ -265,18 +265,25 @@ class ProductCollector:
         
         return subcategories, unique_products
     
-    async def collect_all_products(self, categories: List[Dict] = None) -> List[Dict]:
-        """
-        Collect products from all categories.
+    async def collect_all_products(self, categories: List[Dict]) -> List[Dict]:
+        """Collect products from all categories.
+        
         Handles hierarchical category structures automatically.
+        
+        Args:
+            categories: List of category dictionaries (REQUIRED - must be freshly scraped)
+            
+        Returns:
+            List of all products collected
+            
+        Raises:
+            ValueError: If no categories provided
         """
         if not categories:
-            # Try to load from file
-            categories_file = self.output_dir / "categories.json"
-            if categories_file.exists():
-                categories = load_json(categories_file)
-            else:
-                raise ValueError("No categories provided and categories.json not found")
+            raise ValueError(
+                "No categories provided. Categories must be scraped dynamically using "
+                "CategoryScraper.discover_categories() before collecting products."
+            )
         
         all_products = []
         

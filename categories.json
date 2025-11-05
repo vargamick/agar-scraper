@@ -1,0 +1,287 @@
+[
+  {
+    "name": "Air Fresheners & Deodorisers",
+    "slug": "air-fresheners",
+    "url": "https://agar.com.au/product-category/air-fresheners/"
+  },
+  {
+    "name": "All Purpose & Floor Cleaning",
+    "slug": "all-purpose-floor-cleaners",
+    "url": "https://agar.com.au/product-category/all-purpose-floor-cleaners/"
+  },
+  {
+    "name": "Carpet Care",
+    "slug": "carpet-cleaners",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/"
+  },
+  {
+    "name": "Carpet Spotters & Stain Removers",
+    "slug": "carpet-cleaners/carpet-spotters-and-stain-removers",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/carpet-spotters-and-stain-removers/"
+  },
+  {
+    "name": "Carpet Treatments",
+    "slug": "carpet-cleaners/carpet-cleaners-treatments",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/carpet-cleaners-treatments/"
+  },
+  {
+    "name": "Pre-Spraying & HWE Formulations",
+    "slug": "carpet-cleaners/pre-spraying-hot-water-extraction-formulations",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/pre-spraying-hot-water-extraction-formulations/"
+  },
+  {
+    "name": "Restoration",
+    "slug": "carpet-cleaners/restoration",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/restoration/"
+  },
+  {
+    "name": "Chlorinated Cleaners & Sanitisers",
+    "slug": "chlorinated-cleaners-sanitisers",
+    "url": "https://agar.com.au/product-category/chlorinated-cleaners-sanitisers/"
+  },
+  {
+    "name": "CleanSave Range",
+    "slug": "cleansave-concentrated-chemicals",
+    "url": "https://agar.com.au/product-category/cleansave-concentrated-chemicals/"
+  },
+  {
+    "name": "Disinfectant & Antibacterial Detergents",
+    "slug": "disinfectant-antibacterial-detergent",
+    "url": "https://agar.com.au/product-category/disinfectant-antibacterial-detergent/"
+  },
+  {
+    "name": "Floor Care",
+    "slug": "floor-care",
+    "url": "https://agar.com.au/product-category/floor-care/"
+  },
+  {
+    "name": "Daily Floor Cleaning Detergents",
+    "slug": "floor-care/daily-floor-cleaning-detergents",
+    "url": "https://agar.com.au/product-category/floor-care/daily-floor-cleaning-detergents/"
+  },
+  {
+    "name": "Floor Maintainers",
+    "slug": "floor-care/floor-maintainers",
+    "url": "https://agar.com.au/product-category/floor-care/floor-maintainers/"
+  },
+  {
+    "name": "Floor Sealers",
+    "slug": "floor-care/floor-sealers-and-strippers",
+    "url": "https://agar.com.au/product-category/floor-care/floor-sealers-and-strippers/"
+  },
+  {
+    "name": "Floor Strippers",
+    "slug": "floor-care/floor-strippers",
+    "url": "https://agar.com.au/product-category/floor-care/floor-strippers/"
+  },
+  {
+    "name": "Spray Buff",
+    "slug": "floor-care/spray-buff",
+    "url": "https://agar.com.au/product-category/floor-care/spray-buff/"
+  },
+  {
+    "name": "Furniture Polish",
+    "slug": "furniture-polish",
+    "url": "https://agar.com.au/product-category/furniture-polish/"
+  },
+  {
+    "name": "Glass Cleaning",
+    "slug": "glass-cleaners",
+    "url": "https://agar.com.au/product-category/glass-cleaners/"
+  },
+  {
+    "name": "Green Cleaning",
+    "slug": "green-cleaning-products",
+    "url": "https://agar.com.au/product-category/green-cleaning-products/"
+  },
+  {
+    "name": "Heavy Duty Detergents",
+    "slug": "heavy-duty-detergents",
+    "url": "https://agar.com.au/product-category/heavy-duty-detergents/"
+  },
+  {
+    "name": "Kitchen Cleaning",
+    "slug": "kitchen-care",
+    "url": "https://agar.com.au/product-category/kitchen-care/"
+  },
+  {
+    "name": "Cleaning & Sanitising",
+    "slug": "kitchen-care/cleaning-and-sanitising",
+    "url": "https://agar.com.au/product-category/kitchen-care/cleaning-and-sanitising/"
+  },
+  {
+    "name": "Oven & Grill Cleaning",
+    "slug": "kitchen-care/oven-and-grill-cleaners",
+    "url": "https://agar.com.au/product-category/kitchen-care/oven-and-grill-cleaners/"
+  },
+  {
+    "name": "Ware Washing",
+    "slug": "kitchen-care/ware-washing",
+    "url": "https://agar.com.au/product-category/kitchen-care/ware-washing/"
+  },
+  {
+    "name": "Laundry",
+    "slug": "laundry-products",
+    "url": "https://agar.com.au/product-category/laundry-products/"
+  },
+  {
+    "name": "Before the Wash",
+    "slug": "laundry-products/before-the-wash",
+    "url": "https://agar.com.au/product-category/laundry-products/before-the-wash/"
+  },
+  {
+    "name": "Commercial Laundry Machine Washing",
+    "slug": "laundry-products/commercial-laundry-machine-washing",
+    "url": "https://agar.com.au/product-category/laundry-products/commercial-laundry-machine-washing/"
+  },
+  {
+    "name": "Machine Washing",
+    "slug": "laundry-products/machine-washing",
+    "url": "https://agar.com.au/product-category/laundry-products/machine-washing/"
+  },
+  {
+    "name": "Special Treatment",
+    "slug": "laundry-products/special-treatment",
+    "url": "https://agar.com.au/product-category/laundry-products/special-treatment/"
+  },
+  {
+    "name": "Personal Care",
+    "slug": "personal-care",
+    "url": "https://agar.com.au/product-category/personal-care/"
+  },
+  {
+    "name": "Foaming Hand Soap",
+    "slug": "personal-care/foam-hand-soap",
+    "url": "https://agar.com.au/product-category/personal-care/foam-hand-soap/"
+  },
+  {
+    "name": "Hand Sanitiser",
+    "slug": "personal-care/hand-sanitiser",
+    "url": "https://agar.com.au/product-category/personal-care/hand-sanitiser/"
+  },
+  {
+    "name": "Liquid Soap",
+    "slug": "personal-care/liquid-soap",
+    "url": "https://agar.com.au/product-category/personal-care/liquid-soap/"
+  },
+  {
+    "name": "Specialty Cleaning Products",
+    "slug": "specialty-cleaning",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/"
+  },
+  {
+    "name": "Biological Cleansers",
+    "slug": "specialty-cleaning/biological-cleaners",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/biological-cleaners/"
+  },
+  {
+    "name": "Cream Cleansers",
+    "slug": "specialty-cleaning/cream-cleansers",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/cream-cleansers/"
+  },
+  {
+    "name": "Concrete Cleaners & Removers",
+    "slug": "specialty-cleaning/concrete-cleaners-removers",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/concrete-cleaners-removers/"
+  },
+  {
+    "name": "Graffiti Removers",
+    "slug": "specialty-cleaning/graffiti-removers",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/graffiti-removers/"
+  },
+  {
+    "name": "Leather Cleaner",
+    "slug": "specialty-cleaning/leather-cleaner",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/leather-cleaner/"
+  },
+  {
+    "name": "Metal Care",
+    "slug": "specialty-cleaning/metal-products",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/metal-products/"
+  },
+  {
+    "name": "Special Purpose Heavy Duty Detergents",
+    "slug": "specialty-cleaning/special-purpose-heavy-duty-detergents",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/special-purpose-heavy-duty-detergents/"
+  },
+  {
+    "name": "Vehicle Cleaning",
+    "slug": "specialty-cleaning/vehicle-cleaning",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/vehicle-cleaning/"
+  },
+  {
+    "name": "Spray & Wipe Cleaners",
+    "slug": "spray-wipe-cleaners",
+    "url": "https://agar.com.au/product-category/spray-wipe-cleaners/"
+  },
+  {
+    "name": "Stainless Steel Care",
+    "slug": "stainless-steel-care",
+    "url": "https://agar.com.au/product-category/stainless-steel-care/"
+  },
+  {
+    "name": "Toilet & Bathroom Cleaning Products",
+    "slug": "toilet-bathroom-cleaners",
+    "url": "https://agar.com.au/product-category/toilet-bathroom-cleaners/"
+  },
+  {
+    "name": "Detergent Deodorisers",
+    "slug": "air-fresheners/detergent-deodorisers",
+    "url": "https://agar.com.au/product-category/air-fresheners/detergent-deodorisers/"
+  },
+  {
+    "name": "Other Carpet Cleaning Methods",
+    "slug": "carpet-cleaners/other-carpet-cleaning-methods",
+    "url": "https://agar.com.au/product-category/carpet-cleaners/other-carpet-cleaning-methods/"
+  },
+  {
+    "name": "Cutting Back",
+    "slug": "floor-care/cutting-back",
+    "url": "https://agar.com.au/product-category/floor-care/cutting-back/"
+  },
+  {
+    "name": "Base Sealers",
+    "slug": "floor-care/floor-sealers-and-strippers/base-sealers",
+    "url": "https://agar.com.au/product-category/floor-care/floor-sealers-and-strippers/base-sealers/"
+  },
+  {
+    "name": "Specialised Sealers",
+    "slug": "floor-care/floor-sealers-and-strippers/specialised-sealers",
+    "url": "https://agar.com.au/product-category/floor-care/floor-sealers-and-strippers/specialised-sealers/"
+  },
+  {
+    "name": "Food Processing",
+    "slug": "food-processing",
+    "url": "https://agar.com.au/product-category/food-processing/"
+  },
+  {
+    "name": "Hot Products",
+    "slug": "hot-products",
+    "url": "https://agar.com.au/product-category/hot-products/"
+  },
+  {
+    "name": "Kitchen Floor Cleaning",
+    "slug": "kitchen-care/kitchen-floor-cleaning",
+    "url": "https://agar.com.au/product-category/kitchen-care/kitchen-floor-cleaning/"
+  },
+  {
+    "name": "New Products",
+    "slug": "new-products",
+    "url": "https://agar.com.au/product-category/new-products/"
+  },
+  {
+    "name": "Body Wash & Hair Shampoo",
+    "slug": "personal-care/body-wash-hair-shampoo",
+    "url": "https://agar.com.au/product-category/personal-care/body-wash-hair-shampoo/"
+  },
+  {
+    "name": "Portable Toilet Care",
+    "slug": "specialty-cleaning/portable-toilet-care",
+    "url": "https://agar.com.au/product-category/specialty-cleaning/portable-toilet-care/"
+  },
+  {
+    "name": "Uncategorized",
+    "slug": "uncategorized",
+    "url": "https://agar.com.au/product-category/uncategorized/"
+  }
+]

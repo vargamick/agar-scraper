@@ -17,6 +17,9 @@ The **3DN Scraper Template** is a sophisticated web scraping framework that enab
 - **Strategy Pattern**: CSS selectors and extraction logic separated by client
 - **Production Ready**: Battle-tested with comprehensive error handling and logging
 - **Easy Deployment**: Deploy new clients in minutes with automation scripts
+- **🎯 Fully Dynamic Scraping**: Zero hardcoded data - all categories and products discovered from websites at runtime
+
+> **Architecture Note:** The scraper uses fully dynamic discovery with no hardcoded category lists or fallback values. Categories are automatically scraped from websites, ensuring complete coverage and adaptability to website changes. See [Dynamic Scraping Architecture](docs/dynamic-scraping-architecture.md) for details.
 
 ---
 
@@ -247,7 +250,9 @@ class ClientConfig(BaseConfig):
     PRODUCT_URL_PATTERN = f"{BASE_URL}/product/{{slug}}/"
     
     OUTPUT_PREFIX = "myclient"
-    KNOWN_CATEGORIES = ["category-1", "category-2"]
+    
+    # Categories are discovered dynamically from the website
+    # No manual category lists needed
 ```
 
 ### Extraction Strategies

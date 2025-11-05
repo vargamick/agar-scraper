@@ -80,9 +80,6 @@ class BaseConfig:
     # PDF Download Settings - can be overridden per client
     PDF_MAX_RETRIES = 3
     
-    # Known Categories (fallback) - should be overridden in client config
-    KNOWN_CATEGORIES = []
-    
     # PDF Configuration - should be overridden in client config
     HAS_SDS_DOCUMENTS = False
     HAS_PDS_DOCUMENTS = False
@@ -182,6 +179,5 @@ class BaseConfig:
             "base_url": cls.BASE_URL,
             "output_dir": cls.BASE_OUTPUT_DIR,
             "has_sds": cls.HAS_SDS_DOCUMENTS,
-            "has_pds": cls.HAS_PDS_DOCUMENTS,
-            "known_categories_count": len(cls.KNOWN_CATEGORIES)
+            "has_pds": cls.HAS_PDS_DOCUMENTS
         }

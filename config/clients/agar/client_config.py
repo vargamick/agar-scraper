@@ -41,27 +41,6 @@ class ClientConfig(BaseConfig):
     BASE_OUTPUT_DIR = "agar_scrapes"
     
     # ============================================================================
-    # Known Categories
-    # ============================================================================
-    
-    KNOWN_CATEGORIES = [
-        "toilet-bathroom-cleaners",
-        "green-cleaning-products", 
-        "vehicle-cleaning",
-        "hard-floor-care",
-        "specialty-cleaning",
-        "disinfectants-antibacterials",
-        "kitchen-cleaners",
-        "carpet-upholstery",
-        "laundry-products",
-        "air-fresheners",
-        "hand-soaps-sanitisers",
-        "all-purpose-floor-cleaners",
-        "chlorinated-cleaners-sanitisers",
-        "floor-care"
-    ]
-    
-    # ============================================================================
     # PDF/Document Configuration
     # ============================================================================
     

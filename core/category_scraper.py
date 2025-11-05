@@ -28,29 +28,68 @@ class CategoryScraper:
         self.test_mode = test_mode
     
     async def discover_categories(self) -> List[Dict]:
-        """Discover all product categories from the website"""
-        print("\n🔍 Discovering product categories...")
+        """Discover all product categories from the website navigation"""
+        print("\n🔍 Discovering product categories from website...")
         
-        # For now, use known categories as discovery might have issues
-        # TODO: Implement actual discovery from website navigation
-        categories = []
-        for category_slug in self.config.KNOWN_CATEGORIES:
-            categories.append({
-                "name": category_slug.replace("-", " ").title(),
-                "slug": category_slug,
-                "url": f"{self.base_url}/product-category/{category_slug}/"
-            })
+        from bs4 import BeautifulSoup
+        import re
         
-        total_found = len(categories)
+        async with AsyncWebCrawler() as crawler:
+            crawler_config = CrawlerRunConfig(
+                cache_mode=CacheMode.BYPASS,
+                page_timeout=self.config.PAGE_TIMEOUT,
+                user_agent=self.config.USER_AGENT
+            )
+            
+            try:
+                result = await crawler.arun(self.base_url, config=crawler_config)
+                
+                if result.success and result.html:
+                    # Parse HTML to find all category links
+                    soup = BeautifulSoup(result.html, 'html.parser')
+                    
+                    # Find all links containing /product-category/
+                    category_links = soup.find_all('a', href=re.compile(r'/product-category/'))
+                    
+                    # Process and deduplicate categories
+                    categories_dict = {}
+                    for link in category_links:
+                        url = link.get('href', '')
+                        name = link.get_text(strip=True)
+                        
+                        if url and name and '/product-category/' in url:
+                            # Extract slug from URL
+                            slug = url.rstrip('/').split('/product-category/')[-1]
+                            
+                            # Skip if already exists (deduplication)
+                            if slug and slug not in categories_dict:
+                                # Build full URL if relative
+                                full_url = url if url.startswith('http') else f"{self.base_url}{url}"
+                                
+                                categories_dict[slug] = {
+                                    "name": name,
+                                    "slug": slug,
+                                    "url": full_url
+                                }
+                    
+                    categories = list(categories_dict.values())
+                    total_found = len(categories)
+                    print(f"✓ Discovered {total_found} unique categories from website")
+                    
+                    # Apply test mode limit if enabled
+                    if self.test_mode and len(categories) > self.config.TEST_CATEGORY_LIMIT:
+                        categories = categories[:self.config.TEST_CATEGORY_LIMIT]
+                        print(f"✓ Limited to {self.config.TEST_CATEGORY_LIMIT} categories for test mode")
+                    
+                    return categories
+                    
+            except Exception as e:
+                print(f"❌ Error discovering categories: {e}")
+                import traceback
+                traceback.print_exc()
         
-        # Apply test mode limit if enabled
-        if self.test_mode and len(categories) > self.config.TEST_CATEGORY_LIMIT:
-            categories = categories[:self.config.TEST_CATEGORY_LIMIT]
-            print(f"✓ Using {self.config.TEST_CATEGORY_LIMIT} categories for test mode (from {total_found} known)")
-        else:
-            print(f"✓ Using {total_found} known categories")
-        
-        return categories
+        print("❌ Failed to discover categories from website")
+        return []
     
     async def scrape_category_page(self, category_url: str) -> Dict:
         """Scrape a single category page for metadata"""
@@ -127,7 +166,11 @@ async def main():
     print(" AGAR CATEGORY SCRAPER".center(60))
     print("="*60)
     
-    scraper = CategoryScraper(output_dir=output_dir, test_mode=args.test)
+    # Load config
+    from config.config_loader import ConfigLoader
+    config = ConfigLoader.load_client_config('agar')
+    
+    scraper = CategoryScraper(config=config, output_dir=output_dir, test_mode=args.test)
     categories = await scraper.run()
     
     print(f"\n✅ Found {len(categories)} categories")

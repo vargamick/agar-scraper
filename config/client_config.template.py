@@ -52,16 +52,12 @@ class ClientConfig(BaseConfig):
     BASE_OUTPUT_DIR = "yourclient_scrapes"  # Base output directory name
     
     # ============================================================================
-    # REQUIRED: Known Categories (Fallback)
+    # NOTE: Categories are Discovered Dynamically
     # ============================================================================
     
-    # List of known category slugs for fallback if auto-discovery fails
-    KNOWN_CATEGORIES = [
-        "category-slug-1",
-        "category-slug-2",
-        "category-slug-3",
-        # Add more category slugs as needed
-    ]
+    # Categories are automatically discovered from the website at runtime.
+    # No hardcoded category lists are needed or supported.
+    # The CategoryScraper will discover all available categories from the site.
     
     # ============================================================================
     # OPTIONAL: PDF/Document Configuration
@@ -135,11 +131,13 @@ Before running your scraper, ensure you have:
 3. [ ] Configured CATEGORY_URL_PATTERN (browse site to find pattern)
 4. [ ] Configured PRODUCT_URL_PATTERN (browse site to find pattern)
 5. [ ] Set OUTPUT_PREFIX and BASE_OUTPUT_DIR
-6. [ ] Added at least one KNOWN_CATEGORIES slug
-7. [ ] Created extraction_strategies.py with CSS selectors
-8. [ ] Tested connection: python scripts/test_connection.py --client yourclient
-9. [ ] Validated config: python scripts/validate_config.py --client yourclient
-10. [ ] Run test scrape: python main.py --client yourclient --test
+6. [ ] Created extraction_strategies.py with CSS selectors
+7. [ ] Tested connection: python scripts/test_connection.py --client yourclient
+8. [ ] Validated config: python scripts/validate_config.py --client yourclient
+9. [ ] Run test scrape: python main.py --client yourclient --test
+
+Note: Categories are discovered dynamically from the website - no manual category
+      configuration is required. The scraper will automatically find all categories.
 
 See docs/configuration-guide.md for detailed setup instructions.
 """

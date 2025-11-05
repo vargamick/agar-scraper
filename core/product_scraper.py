@@ -137,7 +137,11 @@ class ProductScraper:
         # Get clean product name
         product_name = clean_product_name(css_data.get("product_name", ""))
         if not product_name:
-            product_name = product_info.get("title", "Unknown")
+            product_name = product_info.get("title", "")
+        if not product_name:
+            # FAIL - don't mask broken CSS selectors with fallback values
+            print(f"  ✗ Failed to extract product name - check CSS selectors")
+            return None
         
         # Build product data (NO PDF URLS)
         return {

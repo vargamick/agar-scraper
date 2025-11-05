@@ -65,25 +65,42 @@ async def test_website_connection(config):
 
 
 async def test_category_url(config):
-    """Test a sample category URL."""
+    """Test a sample category URL by discovering categories dynamically."""
     from crawl4ai import AsyncWebCrawler
+    from core.category_scraper import CategoryScraper
     
-    # Get first known category if available
-    if hasattr(config, 'KNOWN_CATEGORIES') and config.KNOWN_CATEGORIES:
-        category_slug = config.KNOWN_CATEGORIES[0]
-    else:
-        print("\n⚠️  No KNOWN_CATEGORIES defined in config, skipping category URL test")
-        return True, 0
-    
-    # Build category URL
-    category_url = config.BASE_URL + config.CATEGORY_URL_PATTERN.format(slug=category_slug)
-    
-    print(f"\nTesting category URL: {category_url}")
+    print(f"\nTesting category discovery and URL access")
     print("-" * 80)
     
     try:
+        # Discover categories dynamically
+        print("Discovering categories from website...")
+        temp_dir = Path("temp_test_categories")
+        temp_dir.mkdir(exist_ok=True)
+        
+        scraper = CategoryScraper(config, temp_dir, test_mode=False)
+        categories = await scraper.discover_categories()
+        
+        # Clean up temp directory
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        if not categories:
+            print(f"✗ Category discovery failed")
+            print(f"  No categories found on website")
+            print(f"  This indicates a problem with category scraping or website structure")
+            return False, 0
+        
+        print(f"✓ Discovered {len(categories)} categories")
+        
+        # Test first category URL
+        category = categories[0]
+        category_url = category['url']
+        
+        print(f"\nTesting first category: {category['name']}")
+        print(f"URL: {category_url}")
+        
         async with AsyncWebCrawler(verbose=False) as crawler:
-            print(f"Fetching: {category_url}")
             start_time = datetime.now()
             
             result = await crawler.arun(
@@ -96,19 +113,20 @@ async def test_category_url(config):
             duration = (end_time - start_time).total_seconds()
             
             if result.success:
-                print(f"✓ Successfully connected")
+                print(f"✓ Successfully connected to category page")
                 print(f"  Response time: {duration:.2f} seconds")
                 print(f"  Content length: {len(result.html) if result.html else 0} bytes")
                 return True, duration
             else:
-                print(f"✗ Connection failed")
+                print(f"✗ Connection to category page failed")
                 print(f"  Error: {result.error_message if hasattr(result, 'error_message') else 'Unknown error'}")
-                print(f"  Note: Check if CATEGORY_URL_PATTERN is correct")
                 return False, 0
                 
     except Exception as e:
-        print(f"✗ Connection failed with exception")
+        print(f"✗ Category URL test failed with exception")
         print(f"  Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False, 0
 
 

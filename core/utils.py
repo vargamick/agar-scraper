@@ -70,13 +70,22 @@ def save_screenshot(screenshot_data: Any, filepath: Path) -> bool:
         print(f"    ⚠️ Could not save screenshot: {e}")
         return False
 
-def create_run_metadata(run_dir: Path, mode: str = "FULL") -> Dict:
-    """Create initial run metadata"""
+def create_run_metadata(run_dir: Path, config: Type[BaseConfig], mode: str = "FULL") -> Dict:
+    """Create initial run metadata
+    
+    Args:
+        run_dir: Run directory path
+        config: Client configuration class
+        mode: Run mode (FULL or TEST)
+        
+    Returns:
+        Metadata dictionary
+    """
     metadata = {
         "run_id": run_dir.name,
         "start_time": datetime.now().isoformat(),
         "mode": mode,
-        "base_url": "https://agar.com.au",
+        "base_url": config.BASE_URL,
         "status": "RUNNING",
         "run_directory": str(run_dir.absolute())
     }
