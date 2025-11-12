@@ -49,7 +49,29 @@ The **3DN Scraper Template** is a sophisticated web scraping framework that enab
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Docker Deployment (Recommended)
+
+**Quick Start with Docker:**
+
+```bash
+# 1. Create environment file
+cp docker/.env.template .env
+
+# 2. Start services (pulls Crawl4AI image, builds scraper)
+docker-compose up -d
+
+# 3. Run test scrape
+docker-compose run --rm agar-scraper python main.py --client agar --test
+
+# 4. Check results
+ls -la agar_scrapes/
+```
+
+**📘 See [Docker Quick Start Guide](docs/quickstart/DOCKER_QUICKSTART.md) for full instructions**
+
+### Option 2: Local Installation
+
+**Prerequisites:**
 
 ```bash
 # Python 3.11+ required
@@ -59,7 +81,7 @@ python --version
 pip install crawl4ai aiohttp
 ```
 
-### Installation
+**Installation:**
 
 ```bash
 # Clone or download the repository
@@ -70,7 +92,7 @@ cd 3dn-scraper-template
 python main.py --help
 ```
 
-### First Run (Agar Example)
+**First Run (Agar Example):**
 
 ```bash
 # Test mode (limited scraping)
@@ -88,12 +110,13 @@ Comprehensive documentation is available in the `/docs` directory:
 
 | Document | Description |
 |----------|-------------|
-| **[Client Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md)** | Complete guide for deploying new clients |
-| **[Configuration Guide](docs/configuration-guide.md)** | Configuration reference and examples |
-| **[Extraction Strategies](docs/extraction-strategies.md)** | CSS selector guide and testing workflows |
-| **[API Reference](docs/api-reference.md)** | Complete API documentation for all modules |
-| **[Architecture Guide](docs/architecture.md)** | System architecture and design patterns |
-| **[Troubleshooting](docs/troubleshooting.md)** | Common issues and solutions |
+| **[Documentation Index](docs/README.md)** | Complete documentation navigation guide |
+| **[Client Deployment Guide](docs/quickstart/CLIENT_DEPLOYMENT_GUIDE.md)** | Complete guide for deploying new clients |
+| **[Configuration Guide](docs/quickstart/configuration-guide.md)** | Configuration reference and examples |
+| **[Extraction Strategies](docs/architecture/extraction-strategies.md)** | CSS selector guide and testing workflows |
+| **[API Reference](docs/api/api-reference.md)** | Complete API documentation for all modules |
+| **[Architecture Guide](docs/architecture/architecture.md)** | System architecture and design patterns |
+| **[Troubleshooting](docs/quickstart/troubleshooting.md)** | Common issues and solutions |
 
 ---
 
@@ -153,7 +176,7 @@ The wizard guides you through:
 
 ### Manual Client Creation
 
-See the [Client Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md) for detailed instructions on:
+See the [Client Deployment Guide](docs/quickstart/CLIENT_DEPLOYMENT_GUIDE.md) for detailed instructions on:
 - Creating client configuration files
 - Defining extraction strategies
 - Testing and validation
@@ -273,7 +296,7 @@ class MyclientExtractionStrategy:
         }
 ```
 
-See [Configuration Guide](docs/configuration-guide.md) for complete details.
+See [Configuration Guide](docs/quickstart/configuration-guide.md) for complete details.
 
 ---
 
@@ -363,7 +386,7 @@ python main.py --client <client_name> --test
 | PDF download failures | Check network, increase retries/timeout |
 | Configuration errors | Run `validate_config.py` for detailed diagnostics |
 
-See [Troubleshooting Guide](docs/troubleshooting.md) for comprehensive solutions.
+See [Troubleshooting Guide](docs/quickstart/troubleshooting.md) for comprehensive solutions.
 
 ---
 
@@ -433,10 +456,10 @@ For internal use only. Respect website terms of service and robots.txt when depl
 
 ## 📞 Support
 
-- 📖 [Documentation](docs/)
-- 🐛 [Troubleshooting Guide](docs/troubleshooting.md)
-- 💬 [API Reference](docs/api-reference.md)
-- 🚀 [Deployment Guide](docs/CLIENT_DEPLOYMENT_GUIDE.md)
+- 📖 [Documentation Index](docs/README.md)
+- 🐛 [Troubleshooting Guide](docs/quickstart/troubleshooting.md)
+- 💬 [API Reference](docs/api/api-reference.md)
+- 🚀 [Deployment Guide](docs/quickstart/CLIENT_DEPLOYMENT_GUIDE.md)
 
 ---
 

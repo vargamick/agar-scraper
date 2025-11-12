@@ -70,10 +70,21 @@ class ProductCollector:
         if subcategories:
             print(f"{indent}  ✓ Found {len(subcategories)} subcategories")
             
-            # Save subcategory list
-            category_dir = self._get_category_output_dir(category['slug'], parent_slug)
-            save_json(subcategories, category_dir / "subcategories.json")
-            print(f"{indent}  → Saved subcategories list")
+            # Save parent category data with subcategory info
+            category_data = {
+                "name": category['name'],
+                "slug": category['slug'],
+                "url": category['url'],
+                "has_subcategories": True,
+                "subcategory_count": len(subcategories),
+                "subcategories": [{"name": sc['name'], "slug": sc['slug']} for sc in subcategories]
+            }
+            if parent_slug:
+                category_data['parent_slug'] = parent_slug
+            
+            category_path = self._get_category_output_path(category['slug'], parent_slug, is_product_list=False)
+            save_json(category_data, category_path)
+            print(f"{indent}  → Saved category data with subcategories")
             
             # Recursively scrape each subcategory
             for i, subcat in enumerate(subcategories, 1):
@@ -104,8 +115,23 @@ class ProductCollector:
             all_products.extend(products)
             
             # Save products for this specific category
-            category_dir = self._get_category_output_dir(category['slug'], parent_slug)
-            save_json(products, category_dir / "products_list.json")
+            product_list_path = self._get_category_output_path(category['slug'], parent_slug, is_product_list=True)
+            save_json(products, product_list_path)
+            
+            # If no subcategories, also save category metadata
+            if not subcategories:
+                category_data = {
+                    "name": category['name'],
+                    "slug": category['slug'],
+                    "url": category['url'],
+                    "has_subcategories": False,
+                    "product_count": len(products)
+                }
+                if parent_slug:
+                    category_data['parent_slug'] = parent_slug
+                
+                category_path = self._get_category_output_path(category['slug'], parent_slug, is_product_list=False)
+                save_json(category_data, category_path)
         
         if not subcategories and not products:
             print(f"{indent}  ⚠️ No subcategories or products found")
@@ -114,14 +140,42 @@ class ProductCollector:
         
         return all_products
     
-    def _get_category_output_dir(self, category_slug: str, parent_slug: str = None) -> Path:
-        """Get output directory for a category, maintaining hierarchy"""
+    def _get_category_output_path(self, category_slug: str, parent_slug: str = None, 
+                                  is_product_list: bool = False) -> Path:
+        """
+        Get output path for category data.
+        
+        Args:
+            category_slug: Slug of the current category
+            parent_slug: Slug of parent category (if subcategory)
+            is_product_list: Whether this is for a product list file
+        
+        Returns:
+            Path: Direct file path (not directory) for the category data
+        """
+        categories_dir = self.output_dir / "categories"
+        categories_dir.mkdir(parents=True, exist_ok=True)
+        
         if parent_slug:
-            category_dir = self.output_dir / "categories" / parent_slug / category_slug
+            # Subcategory - create parent folder if needed
+            parent_dir = categories_dir / parent_slug
+            parent_dir.mkdir(parents=True, exist_ok=True)
+            
+            # File naming: parent_subcategory[_products].json
+            if is_product_list:
+                filename = f"{parent_slug}_{category_slug}_products.json"
+            else:
+                filename = f"{parent_slug}_{category_slug}.json"
+            
+            return parent_dir / filename
         else:
-            category_dir = self.output_dir / "categories" / category_slug
-        category_dir.mkdir(parents=True, exist_ok=True)
-        return category_dir
+            # Top-level category - save directly in categories/
+            if is_product_list:
+                filename = f"{category_slug}_products.json"
+            else:
+                filename = f"{category_slug}.json"
+            
+            return categories_dir / filename
     
     async def _extract_page_content(self, category_url: str, indent: str = "  ") -> Tuple[List[Dict], List[Dict]]:
         """
@@ -352,14 +406,18 @@ async def main():
     print(" AGAR PRODUCT URL COLLECTOR".center(60))
     print("="*60)
     
-    collector = ProductCollector(output_dir=output_dir, test_mode=args.test)
+    # Load config
+    from config.config_loader import ConfigLoader
+    config = ConfigLoader.load_client_config('agar')
+    
+    collector = ProductCollector(config=config, output_dir=output_dir, test_mode=args.test)
     
     if args.category:
         # Single category mode
         category = {
             "name": args.category.replace("-", " ").title(),
             "slug": args.category,
-            "url": f"{BASE_URL}/product-category/{args.category}/"
+            "url": f"{config.BASE_URL}/product-category/{args.category}/"
         }
         products = await collector.collect_from_category(category)
         if products:

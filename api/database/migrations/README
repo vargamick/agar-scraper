@@ -1,0 +1,61 @@
+Alembic Database Migrations for 3DN Scraper API
+================================================
+
+This directory contains Alembic database migrations for the Scraper API.
+
+## Commands
+
+### Create a new migration (auto-generate)
+```bash
+alembic revision --autogenerate -m "Description of changes"
+```
+
+### Create a new empty migration
+```bash
+alembic revision -m "Description of changes"
+```
+
+### Apply migrations (upgrade to latest)
+```bash
+alembic upgrade head
+```
+
+### Apply migrations to specific revision
+```bash
+alembic upgrade <revision_id>
+```
+
+### Downgrade one revision
+```bash
+alembic downgrade -1
+```
+
+### Downgrade to specific revision
+```bash
+alembic downgrade <revision_id>
+```
+
+### Show current revision
+```bash
+alembic current
+```
+
+### Show migration history
+```bash
+alembic history
+```
+
+## Initial Setup
+
+1. Make sure DATABASE_URL is set in your .env file
+2. Run initial migration:
+   ```bash
+   alembic upgrade head
+   ```
+
+## Notes
+
+- Always review auto-generated migrations before applying them
+- Test migrations on a development database first
+- Migrations are applied in sequence based on their revision IDs
+- Never edit applied migrations - create a new migration instead

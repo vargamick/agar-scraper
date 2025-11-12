@@ -115,10 +115,29 @@ class CategoryScraper:
         return {"scraped": False}
     
     def save_categories(self, categories: List[Dict]) -> Path:
-        """Save categories to JSON file"""
+        """Save categories to JSON file and individual category files"""
+        # Save main categories list at root
         filepath = self.output_dir / "categories.json"
         save_json(categories, filepath)
         print(f"✓ Saved {len(categories)} categories to {filepath}")
+        
+        # Create categories directory
+        categories_dir = self.output_dir / "categories"
+        categories_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save each category as individual JSON file
+        for category in categories:
+            slug = category['slug']
+            filename = f"{slug}.json"
+            category_file = categories_dir / filename
+            
+            # Ensure parent directory exists if slug contains path separators
+            category_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            save_json(category, category_file)
+        
+        print(f"✓ Saved {len(categories)} individual category files to {categories_dir}")
+        
         return filepath
     
     async def run(self) -> List[Dict]:

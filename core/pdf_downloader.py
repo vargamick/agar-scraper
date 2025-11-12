@@ -31,8 +31,10 @@ class PDFDownloader:
         """
         self.config = config
         self.run_dir = Path(run_dir)
-        self.pdf_output_dir = self.run_dir / "PDFs"
+        self.pdf_output_dir = self.run_dir / "pdfs"
         self.pdf_metadata_dir = self.run_dir / "pdfs"
+        self.pds_dir = self.pdf_output_dir / "PDS"
+        self.sds_dir = self.pdf_output_dir / "SDS"
         self.max_retries = max_retries
         self.timeout = timeout
         
@@ -50,8 +52,10 @@ class PDFDownloader:
             "total_size_bytes": 0
         }
         
-        # Ensure output directory exists
+        # Ensure output directories exist
         self.pdf_output_dir.mkdir(parents=True, exist_ok=True)
+        self.pds_dir.mkdir(parents=True, exist_ok=True)
+        self.sds_dir.mkdir(parents=True, exist_ok=True)
     
     async def download_all_pdfs(self, products: Optional[List[Dict]] = None) -> Dict:
         """
@@ -133,28 +137,26 @@ class PDFDownloader:
             print("  ⚠️  Skipping: No product name")
             return
         
-        # Create product subdirectory
+        # Generate safe filename
         safe_product_name = sanitize_filename(product_name)
-        product_pdf_dir = self.pdf_output_dir / safe_product_name
-        product_pdf_dir.mkdir(parents=True, exist_ok=True)
         
-        # Download SDS
+        # Download SDS directly to SDS folder
         if sds_url:
             await self._download_single_pdf(
                 session, 
                 sds_url, 
-                product_pdf_dir / f"{safe_product_name}_SDS.pdf",
+                self.sds_dir / f"{safe_product_name}_SDS.pdf",
                 "SDS"
             )
         else:
             print("  ⚠️  No SDS URL available")
         
-        # Download PDS
+        # Download PDS directly to PDS folder
         if pds_url:
             await self._download_single_pdf(
                 session, 
                 pds_url, 
-                product_pdf_dir / f"{safe_product_name}_PDS.pdf",
+                self.pds_dir / f"{safe_product_name}_PDS.pdf",
                 "PDS"
             )
         else:
@@ -342,7 +344,9 @@ This will:
     downloader = PDFDownloader(run_dir, max_retries=args.retries, timeout=args.timeout)
     await downloader.download_all_pdfs()
     
-    print(f"\n✅ PDFs saved to: {downloader.pdf_output_dir.absolute()}")
+    print(f"\n✅ PDFs saved to:")
+    print(f"   SDS: {downloader.sds_dir.absolute()}")
+    print(f"   PDS: {downloader.pds_dir.absolute()}")
 
 
 if __name__ == "__main__":

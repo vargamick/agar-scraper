@@ -35,11 +35,11 @@ class ScraperOrchestrator:
         self.run_dir = Path(config.BASE_OUTPUT_DIR) / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create subdirectories
+        # Create base subdirectories (specialized modules will create their own substructure)
         (self.run_dir / "products").mkdir(exist_ok=True)
         (self.run_dir / "categories").mkdir(exist_ok=True)
         (self.run_dir / "screenshots").mkdir(exist_ok=True)
-        (self.run_dir / "pdfs").mkdir(exist_ok=True)
+        (self.run_dir / "pdfs").mkdir(exist_ok=True)  # PDFDownloader creates PDS/SDS subdirs
         (self.run_dir / "reports").mkdir(exist_ok=True)
         (self.run_dir / "logs").mkdir(exist_ok=True)
         

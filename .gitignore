@@ -21,10 +21,15 @@ env/
 .DS_Store
 Thumbs.db
 
-# Project-specific
+# Project-specific - generated directories
 agar_scrapes/
 backup/
 pdfs/
+scraper_data/
+logs/
+
+# Environment files (keep templates)
+.env
 
 # Logs
 *.log
@@ -32,3 +37,8 @@ pdfs/
 # Temporary files
 *.tmp
 *.temp
+
+# Docker volumes
+postgres-data/
+redis-data/
+crawl4ai-cache/
