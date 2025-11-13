@@ -87,9 +87,10 @@ class CategoryScraper:
                 print(f"❌ Error discovering categories: {e}")
                 import traceback
                 traceback.print_exc()
-        
+                raise
+
         print("❌ Failed to discover categories from website")
-        return []
+        raise ValueError("Failed to discover categories from website")
     
     async def scrape_category_page(self, category_url: str) -> Dict:
         """Scrape a single category page for metadata"""

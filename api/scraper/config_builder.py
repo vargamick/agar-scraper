@@ -68,6 +68,11 @@ class ConfigBuilder:
             "max_depth": self.job_config.get("crawlDepth", 3),
             "max_pages": self.job_config.get("maxPages", 100),
 
+            # Client configuration (for core module integration)
+            "client_name": self.job_config.get("client_name", "agar"),
+            "test_mode": self.job_config.get("test_mode", False),
+            "save_screenshots": self.job_config.get("save_screenshots", True),
+
             # Rate limiting
             "rate_limit_min": rate_limit_min,
             "rate_limit_max": rate_limit_max,

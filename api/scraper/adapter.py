@@ -114,7 +114,7 @@ class ScraperAdapter:
 
             # Step 5: Collect results
             self.progress_reporter.log_info("Collecting results")
-            await self._collect_results(scraped_data)
+            await self._collect_results(scraped_data, categories, products)
 
             # Update final statistics
             self.stats["items_extracted"] = len(scraped_data)
@@ -139,66 +139,99 @@ class ScraperAdapter:
 
     async def _discover_categories(self, start_urls: list) -> list:
         """
-        Discover categories from start URLs.
+        Discover categories from start URLs using CategoryScraper.
 
         Args:
             start_urls: List of starting URLs
 
         Returns:
             List of discovered categories
+
+        Raises:
+            Exception: If category discovery fails
         """
         try:
-            # For now, just use the start URLs as categories
-            # In a full implementation, you would use the CategoryScraper
-            categories = [{"url": url, "name": url} for url in start_urls]
+            from config.config_loader import ConfigLoader
+            from pathlib import Path
+
+            # Load client configuration
+            client_name = self.scraper_config.get("client_name", "agar")
+            config = ConfigLoader.load_client_config(client_name)
+
+            # Initialize CategoryScraper
+            category_scraper = CategoryScraper(
+                config=config,
+                output_dir=Path(self.output_path),
+                test_mode=self.scraper_config.get("test_mode", False)
+            )
+
+            # Discover categories from the website
+            categories = await category_scraper.discover_categories()
+
+            if not categories:
+                raise ValueError("No categories discovered from website")
 
             self.progress_reporter.log_info(f"Discovered {len(categories)} categories")
             return categories
 
         except Exception as e:
-            logger.error(f"Category discovery failed: {e}")
+            logger.error(f"Category discovery failed: {e}", exc_info=True)
             self.stats["errors"] += 1
             self.progress_reporter.log_error(f"Category discovery failed: {str(e)}")
-            return []
+            raise
 
     async def _collect_products(self, categories: list) -> list:
         """
-        Collect product URLs from categories.
+        Collect product URLs from categories using ProductCollector.
 
         Args:
             categories: List of category dictionaries
 
         Returns:
             List of product dictionaries
+
+        Raises:
+            Exception: If product collection fails
         """
         try:
-            # Simplified product collection
-            # In a full implementation, use ProductCollector
-            products = []
+            from config.config_loader import ConfigLoader
+            from pathlib import Path
 
-            for category in categories:
-                # For now, just create dummy products from the category URL
-                products.append({
-                    "url": category["url"],
-                    "title": f"Product from {category['name']}",
-                    "category": category["name"],
-                })
+            # Load client configuration
+            client_name = self.scraper_config.get("client_name", "agar")
+            config = ConfigLoader.load_client_config(client_name)
 
-            max_pages = self.scraper_config["max_pages"]
-            products = products[:max_pages]
+            # Initialize ProductCollector
+            product_collector = ProductCollector(
+                config=config,
+                output_dir=Path(self.output_path),
+                test_mode=self.scraper_config.get("test_mode", False)
+            )
+
+            # Collect products from all categories
+            products = await product_collector.collect_all_products(categories)
+
+            if not products:
+                raise ValueError("No products collected from categories")
+
+            # Apply max_pages limit
+            max_pages = self.scraper_config.get("max_pages", len(products))
+            if len(products) > max_pages:
+                products = products[:max_pages]
+                self.progress_reporter.log_info(f"Limited to {max_pages} products")
 
             self.progress_reporter.log_info(f"Collected {len(products)} product URLs")
             return products
 
         except Exception as e:
-            logger.error(f"Product collection failed: {e}")
+            logger.error(f"Product collection failed: {e}", exc_info=True)
             self.stats["errors"] += 1
             self.progress_reporter.log_error(f"Product collection failed: {str(e)}")
-            return []
+            raise
 
     async def _scrape_products(self, products: list, start_time: datetime) -> list:
         """
-        Scrape product details.
+        Scrape product details using ProductScraper.
 
         Args:
             products: List of product dictionaries
@@ -206,71 +239,180 @@ class ScraperAdapter:
 
         Returns:
             List of scraped product data
+
+        Raises:
+            Exception: If scraping fails completely
         """
-        scraped_data = []
+        try:
+            from config.config_loader import ConfigLoader
+            from pathlib import Path
+            from core.product_pdf_scraper import ProductPDFScraper
 
-        for i, product in enumerate(products, 1):
-            try:
-                # Simulate scraping (in full implementation, use ProductScraper)
-                product_data = {
-                    "url": product["url"],
-                    "title": product["title"],
-                    "category": product.get("category", ""),
-                    "scraped_at": datetime.utcnow().isoformat(),
-                    # Add more fields as needed
-                }
+            # Load client configuration and strategies
+            client_name = self.scraper_config.get("client_name", "agar")
+            config = ConfigLoader.load_client_config(client_name)
+            strategies = ConfigLoader.load_client_strategies(client_name)
 
-                scraped_data.append(product_data)
+            if strategies is None:
+                raise ValueError(f"No extraction strategies found for client '{client_name}'")
 
-                # Update progress
-                self.progress_reporter.update_progress(
-                    pages_scraped=i,
-                    total_pages=len(products),
-                    started_at=start_time,
+            # Initialize ProductScraper
+            product_scraper = ProductScraper(
+                config=config,
+                extraction_strategy=strategies,
+                output_dir=Path(self.output_path),
+                save_screenshots=self.scraper_config.get("save_screenshots", True)
+            )
+
+            # Initialize ProductPDFScraper for extracting PDF links
+            pdf_scraper = ProductPDFScraper(
+                config=config,
+                output_dir=Path(self.output_path)
+            )
+
+            scraped_data = []
+            failed_products = []
+
+            for i, product in enumerate(products, 1):
+                try:
+                    # Scrape product details
+                    product_data = await product_scraper.scrape_product(product)
+
+                    if product_data:
+                        # Extract PDF links and add to product data
+                        try:
+                            pdf_data = await pdf_scraper.scrape_pdf_links(
+                                product_url=product_data.get("product_url"),
+                                product_name=product_data.get("product_name", "Product")
+                            )
+                            if pdf_data:
+                                product_data.update(pdf_data)
+                        except Exception as pdf_error:
+                            logger.warning(f"Failed to extract PDF links for {product_data.get('product_name')}: {pdf_error}")
+                            # Add empty PDF fields so structure is consistent
+                            product_data.update({
+                                "sds_url": None,
+                                "pds_url": None,
+                                "pdf_extraction_method": "failed",
+                                "total_pdfs_found": 0
+                            })
+
+                        scraped_data.append(product_data)
+                    else:
+                        failed_products.append(product.get("url", "unknown"))
+                        self.stats["errors"] += 1
+
+                    # Update progress
+                    self.progress_reporter.update_progress(
+                        pages_scraped=i,
+                        total_pages=len(products),
+                        started_at=start_time,
+                    )
+
+                    # Log every 10 products
+                    if i % 10 == 0:
+                        self.progress_reporter.log_info(
+                            f"Scraped {i}/{len(products)} products ({len(scraped_data)} successful, {len(failed_products)} failed)"
+                        )
+
+                    # Rate limiting
+                    if i < len(products):
+                        await asyncio.sleep(config.RATE_LIMIT_DELAY)
+
+                except Exception as e:
+                    logger.error(f"Failed to scrape product {product.get('url')}: {e}", exc_info=True)
+                    failed_products.append(product.get("url", "unknown"))
+                    self.stats["errors"] += 1
+                    self.progress_reporter.log_error(f"Failed to scrape product: {str(e)}")
+
+            # Log final statistics
+            self.progress_reporter.log_info(
+                f"Product scraping complete: {len(scraped_data)} successful, {len(failed_products)} failed"
+            )
+
+            if failed_products:
+                self.progress_reporter.log_warning(
+                    f"Failed products: {', '.join(failed_products[:5])}" +
+                    (f"... and {len(failed_products) - 5} more" if len(failed_products) > 5 else "")
                 )
 
-                # Log every 10 products
-                if i % 10 == 0:
-                    self.progress_reporter.log_info(f"Scraped {i}/{len(products)} products")
+            return scraped_data
 
-            except Exception as e:
-                logger.error(f"Failed to scrape product {product.get('url')}: {e}")
-                self.stats["errors"] += 1
-                self.progress_reporter.log_error(f"Failed to scrape product: {str(e)}")
-
-        return scraped_data
+        except Exception as e:
+            logger.error(f"Product scraping failed: {e}", exc_info=True)
+            self.stats["errors"] += 1
+            self.progress_reporter.log_error(f"Product scraping failed: {str(e)}")
+            raise
 
     async def _download_pdfs(self, scraped_data: list):
         """
-        Download PDF documents.
+        Download PDF documents using PDFDownloader.
 
         Args:
             scraped_data: List of scraped product data
+
+        Raises:
+            Exception: If PDF download fails
         """
         try:
-            # In full implementation, use PDFDownloader
-            self.progress_reporter.log_info("PDF download step (placeholder)")
+            from config.config_loader import ConfigLoader
+
+            # Load client configuration
+            client_name = self.scraper_config.get("client_name", "agar")
+            config = ConfigLoader.load_client_config(client_name)
+
+            # Initialize PDFDownloader
+            pdf_downloader = PDFDownloader(
+                config=config,
+                run_dir=self.output_path,
+                max_retries=3,
+                timeout=30
+            )
+
+            # Download all PDFs
+            stats = await pdf_downloader.download_all_pdfs(products=scraped_data)
+
+            # Update statistics
+            self.stats["bytes_downloaded"] = stats.get("total_size_bytes", 0)
+
+            self.progress_reporter.log_info(
+                f"PDF download complete: {stats.get('successful_downloads', 0)} successful, "
+                f"{stats.get('failed_downloads', 0)} failed, {stats.get('skipped', 0)} skipped"
+            )
+
         except Exception as e:
-            logger.error(f"PDF download failed: {e}")
+            logger.error(f"PDF download failed: {e}", exc_info=True)
             self.stats["errors"] += 1
             self.progress_reporter.log_error(f"PDF download failed: {str(e)}")
+            raise
 
-    async def _collect_results(self, scraped_data: list):
+    async def _collect_results(self, scraped_data: list, categories: list = None, products: list = None):
         """
         Collect and store results.
 
         Args:
             scraped_data: List of scraped data
+            categories: List of category data (optional)
+            products: List of product URL data (optional)
+
+        Raises:
+            Exception: If result collection fails
         """
         try:
+            import json
+
             # Collect results in batch
             results = []
             for data in scraped_data:
                 results.append({
-                    "url": data.get("url"),
+                    "url": data.get("product_url", data.get("url")),
                     "content": data,
-                    "links": [],
-                    "metadata": {"source": "api_job"},
+                    "links": [data.get("sds_url"), data.get("pds_url")] if (data.get("sds_url") or data.get("pds_url")) else [],
+                    "metadata": {
+                        "source": "api_job",
+                        "job_id": str(self.job_id),
+                        "client_name": self.scraper_config.get("client_name", "unknown")
+                    },
                 })
 
             self.result_collector.collect_batch(results)
@@ -283,9 +425,27 @@ class ScraperAdapter:
                 format=file_format,
             )
 
+            # Save consolidated output files (matching CLI behavior)
+            output_dir = Path(self.output_path)
+
+            # Save categories.json
+            if categories:
+                categories_file = output_dir / "categories.json"
+                with open(categories_file, 'w', encoding='utf-8') as f:
+                    json.dump(categories, f, indent=2, ensure_ascii=False)
+                self.progress_reporter.log_info(f"Saved categories.json with {len(categories)} categories")
+
+            # Save all_products.json (full product data with PDF metadata)
+            if scraped_data:
+                all_products_file = output_dir / "all_products.json"
+                with open(all_products_file, 'w', encoding='utf-8') as f:
+                    json.dump(scraped_data, f, indent=2, ensure_ascii=False)
+                self.progress_reporter.log_info(f"Saved all_products.json with {len(scraped_data)} products")
+
             self.progress_reporter.log_info(f"Results collected: {len(scraped_data)} items")
 
         except Exception as e:
-            logger.error(f"Result collection failed: {e}")
+            logger.error(f"Result collection failed: {e}", exc_info=True)
             self.stats["errors"] += 1
             self.progress_reporter.log_error(f"Result collection failed: {str(e)}")
+            raise

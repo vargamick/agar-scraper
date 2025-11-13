@@ -72,6 +72,9 @@ class ResultCollector:
             content: Scraped content
             links: Extracted links
             metadata: Additional metadata
+
+        Raises:
+            Exception: If result collection fails
         """
         try:
             # Create result record
@@ -91,9 +94,10 @@ class ResultCollector:
 
             logger.debug(f"Result collected for job {self.job_id}: {url}")
         except Exception as e:
-            logger.error(f"Failed to collect result: {e}")
+            logger.exception(f"Failed to collect result for job {self.job_id}, url: {url}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def collect_batch(self, results: List[Dict[str, Any]]):
         """
@@ -101,6 +105,9 @@ class ResultCollector:
 
         Args:
             results: List of result dictionaries
+
+        Raises:
+            Exception: If batch collection fails
         """
         try:
             repo = self._get_repository()
@@ -119,9 +126,10 @@ class ResultCollector:
             self._db.commit()
             logger.info(f"Batch of {len(results)} results collected for job {self.job_id}")
         except Exception as e:
-            logger.error(f"Failed to collect batch: {e}")
+            logger.exception(f"Failed to collect batch for job {self.job_id}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def save_to_file(self, filename: str, data: Any, format: str = "json"):
         """
@@ -131,6 +139,9 @@ class ResultCollector:
             filename: Output filename
             data: Data to save
             format: File format (json, markdown, html)
+
+        Raises:
+            Exception: If file save fails
         """
         try:
             file_path = self.output_path / filename
@@ -151,7 +162,8 @@ class ResultCollector:
 
             logger.debug(f"Data saved to {file_path}")
         except Exception as e:
-            logger.error(f"Failed to save file: {e}")
+            logger.exception(f"Failed to save file {filename} for job {self.job_id}")
+            raise
 
     def load_from_scraper_output(self, scraper_output_dir: Path):
         """

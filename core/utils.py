@@ -55,16 +55,18 @@ def save_screenshot(screenshot_data: Any, filepath: Path) -> bool:
             else:
                 try:
                     screenshot_bytes = base64.b64decode(screenshot_data)
-                except:
+                except (base64.binascii.Error, ValueError) as e:
+                    # If base64 decode fails, treat as plain text
+                    print(f"    ⚠️ Failed to decode base64, treating as text: {e}")
                     screenshot_bytes = screenshot_data.encode('utf-8')
         elif isinstance(screenshot_data, bytes):
             screenshot_bytes = screenshot_data
         else:
             screenshot_bytes = str(screenshot_data).encode('utf-8')
-        
+
         with open(filepath, "wb") as f:
             f.write(screenshot_bytes)
-        
+
         return True
     except Exception as e:
         print(f"    ⚠️ Could not save screenshot: {e}")

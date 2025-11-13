@@ -95,36 +95,54 @@ class ProductScraper:
                         
                         print(f"  ✓ Extracted product details")
                         return data
+                    except json.JSONDecodeError as e:
+                        print(f"  ✗ Error parsing product details JSON: {e}")
+                        raise ValueError(f"Failed to parse product details JSON: {e}") from e
                     except Exception as e:
-                        print(f"  ✗ Error parsing product details: {e}")
-                        return None
-                
+                        print(f"  ✗ Error processing product details: {e}")
+                        raise
+
                 print(f"  ✗ No content extracted")
-                return None
-                    
+                raise ValueError("No content extracted from product page")
+
             except Exception as e:
                 print(f"  ✗ Error scraping product details: {e}")
-                return None
+                raise
     
     async def scrape_product(self, product_info: Dict) -> Optional[Dict]:
-        """Main scraper method - extracts product details only"""
-        
+        """Main scraper method - extracts product details only
+
+        Raises:
+            ValueError: If product details cannot be extracted
+            Exception: For other scraping failures
+        """
+
         print(f"\n  → Product: {product_info.get('title', 'Unknown Product')}")
-        
+
         # Get product details with CSS extraction
-        css_data = await self.scrape_product_details(product_info)
-        if not css_data:
-            print(f"  ✗ Failed to extract product details")
-            return None
-        
-        # Format the product data
-        product_data = self.format_product_data(css_data, product_info)
-        
-        return product_data
+        try:
+            css_data = await self.scrape_product_details(product_info)
+            if not css_data:
+                raise ValueError("Failed to extract product details")
+
+            # Format the product data
+            product_data = self.format_product_data(css_data, product_info)
+
+            if not product_data:
+                raise ValueError("Failed to format product data")
+
+            return product_data
+        except Exception as e:
+            print(f"  ✗ Failed to scrape product: {e}")
+            raise
     
     def format_product_data(self, css_data: Dict, product_info: Dict) -> Dict:
-        """Format scraped product data (NO PDF URLs - use product_pdf_scraper.py)"""
-        
+        """Format scraped product data (NO PDF URLs - use product_pdf_scraper.py)
+
+        Raises:
+            ValueError: If product name cannot be extracted
+        """
+
         # Get product image with fallbacks
         product_image = ""
         if css_data.get("main_image"):
@@ -133,7 +151,7 @@ class ProductScraper:
             product_image = css_data["gallery_images"][0]
         elif product_info.get("image"):
             product_image = product_info["image"]
-        
+
         # Get clean product name
         product_name = clean_product_name(css_data.get("product_name", ""))
         if not product_name:
@@ -141,7 +159,7 @@ class ProductScraper:
         if not product_name:
             # FAIL - don't mask broken CSS selectors with fallback values
             print(f"  ✗ Failed to extract product name - check CSS selectors")
-            return None
+            raise ValueError("Failed to extract product name - check CSS selectors")
         
         # Build product data (NO PDF URLS)
         return {

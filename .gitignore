@@ -42,3 +42,4 @@ logs/
 postgres-data/
 redis-data/
 crawl4ai-cache/
+.claude/settings.local.json

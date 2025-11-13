@@ -56,6 +56,9 @@ class ProgressReporter:
 
         Args:
             status: New job status
+
+        Raises:
+            Exception: If status update fails
         """
         try:
             repo = self._get_repository()
@@ -63,9 +66,10 @@ class ProgressReporter:
             self._db.commit()
             logger.info(f"Job {self.job_id} status updated to {status.value}")
         except Exception as e:
-            logger.error(f"Failed to update job status: {e}")
+            logger.exception(f"Failed to update job status for job {self.job_id}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def update_progress(
         self,
@@ -80,6 +84,9 @@ class ProgressReporter:
             pages_scraped: Number of pages scraped
             total_pages: Total number of pages
             started_at: Job start time
+
+        Raises:
+            Exception: If progress update fails
         """
         try:
             percentage = int((pages_scraped / total_pages) * 100) if total_pages > 0 else 0
@@ -108,9 +115,10 @@ class ProgressReporter:
 
             logger.debug(f"Job {self.job_id} progress: {percentage}% ({pages_scraped}/{total_pages})")
         except Exception as e:
-            logger.error(f"Failed to update job progress: {e}")
+            logger.exception(f"Failed to update job progress for job {self.job_id}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def update_stats(
         self,
@@ -127,6 +135,9 @@ class ProgressReporter:
             items_extracted: Items extracted
             errors: Error count
             retries: Retry count
+
+        Raises:
+            Exception: If stats update fails
         """
         try:
             stats = {
@@ -142,9 +153,10 @@ class ProgressReporter:
 
             logger.debug(f"Job {self.job_id} stats updated: {items_extracted} items, {errors} errors")
         except Exception as e:
-            logger.error(f"Failed to update job stats: {e}")
+            logger.exception(f"Failed to update job stats for job {self.job_id}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def add_log(
         self,
@@ -159,6 +171,9 @@ class ProgressReporter:
             level: Log level
             message: Log message
             metadata: Optional metadata
+
+        Raises:
+            Exception: If log addition fails
         """
         try:
             log = JobLog(
@@ -175,9 +190,10 @@ class ProgressReporter:
 
             logger.debug(f"Job {self.job_id} log added: [{level.value}] {message}")
         except Exception as e:
-            logger.error(f"Failed to add job log: {e}")
+            logger.exception(f"Failed to add job log for job {self.job_id}")
             if self._db:
                 self._db.rollback()
+            raise
 
     def log_info(self, message: str, metadata: Optional[dict] = None):
         """Log info message."""

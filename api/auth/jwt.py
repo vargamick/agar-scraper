@@ -4,6 +4,7 @@ JWT token creation and validation.
 Handles access and refresh token generation and decoding.
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from uuid import UUID
@@ -11,6 +12,8 @@ from uuid import UUID
 from jose import JWTError, jwt
 
 from api.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(
@@ -108,11 +111,13 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
 
         # Verify token type
         if payload.get("type") != "access":
+            logger.warning(f"Token type mismatch: expected 'access', got '{payload.get('type')}'")
             return None
 
         return payload
 
-    except JWTError:
+    except JWTError as e:
+        logger.warning(f"JWT access token validation failed: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -135,11 +140,13 @@ def decode_refresh_token(token: str) -> Optional[Dict[str, Any]]:
 
         # Verify token type
         if payload.get("type") != "refresh":
+            logger.warning(f"Token type mismatch: expected 'refresh', got '{payload.get('type')}'")
             return None
 
         return payload
 
-    except JWTError:
+    except JWTError as e:
+        logger.warning(f"JWT refresh token validation failed: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -161,5 +168,6 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
         )
         return payload
 
-    except JWTError:
+    except JWTError as e:
+        logger.warning(f"JWT token validation failed: {type(e).__name__}: {str(e)}")
         return None
