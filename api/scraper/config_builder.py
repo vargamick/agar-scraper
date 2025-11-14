@@ -7,6 +7,7 @@ Converts API job configuration to scraper-compatible configuration.
 import logging
 from typing import Dict, Any
 from uuid import UUID
+from datetime import datetime
 
 from api.schemas.job import JobConfig, OutputConfig
 from config.base_config import BaseConfig
@@ -22,7 +23,7 @@ class ConfigBuilder:
     by the existing scraper modules.
     """
 
-    def __init__(self, job_id: UUID, job_config: Dict[str, Any], output_config: Dict[str, Any]):
+    def __init__(self, job_id: UUID, job_config: Dict[str, Any], output_config: Dict[str, Any], folder_name: str = None):
         """
         Initialize config builder.
 
@@ -30,10 +31,21 @@ class ConfigBuilder:
             job_id: Job UUID
             job_config: Job configuration dictionary
             output_config: Output configuration dictionary
+            folder_name: Optional folder name for output (defaults to timestamp format)
         """
         self.job_id = job_id
         self.job_config = job_config
         self.output_config = output_config
+        self.folder_name = folder_name or self._generate_folder_name()
+
+    def _generate_folder_name(self) -> str:
+        """
+        Generate a folder name using timestamp format YYYYMMDD_HHMMSS.
+
+        Returns:
+            Folder name string in format YYYYMMDD_HHMMSS
+        """
+        return datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def build_scraper_config(self) -> Dict[str, Any]:
         """
@@ -104,13 +116,13 @@ class ConfigBuilder:
 
     def get_output_path(self) -> str:
         """
-        Get output path for job results.
+        Get output path for job results using meaningful folder name.
 
         Returns:
-            Output directory path
+            Output directory path in format: {STORAGE_JOBS_PATH}/{folder_name}_{job_id}
         """
         from api.config import settings
-        return f"{settings.STORAGE_JOBS_PATH}/{self.job_id}"
+        return f"{settings.STORAGE_JOBS_PATH}/{self.folder_name}_{self.job_id}"
 
     def should_send_to_memento(self) -> bool:
         """

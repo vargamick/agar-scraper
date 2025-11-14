@@ -37,6 +37,7 @@ class ScraperAdapter:
         job_id: UUID,
         job_config: Dict[str, Any],
         output_config: Dict[str, Any],
+        folder_name: str = None,
     ):
         """
         Initialize scraper adapter.
@@ -45,9 +46,10 @@ class ScraperAdapter:
             job_id: Job UUID
             job_config: Job configuration dictionary
             output_config: Output configuration dictionary
+            folder_name: Optional folder name for output (defaults to timestamp)
         """
         self.job_id = job_id
-        self.config_builder = ConfigBuilder(job_id, job_config, output_config)
+        self.config_builder = ConfigBuilder(job_id, job_config, output_config, folder_name)
         self.progress_reporter = ProgressReporter(job_id)
         self.output_path = self.config_builder.get_output_path()
         self.result_collector = ResultCollector(job_id, self.output_path)

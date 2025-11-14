@@ -97,6 +97,9 @@ class Job(Base):
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
 
+    # Output folder name with timestamp (format: YYYYMMDD_HHMMSS)
+    folder_name = Column(String(255), nullable=True, index=True)
+
     # Job type and status
     type = Column(SQLEnum(JobType), nullable=False, index=True)
     status = Column(SQLEnum(JobStatus), default=JobStatus.PENDING, nullable=False, index=True)

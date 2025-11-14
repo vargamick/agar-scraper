@@ -69,6 +69,7 @@ def execute_scraper_job(
     job_id: str,
     job_config: Dict[str, Any],
     output_config: Dict[str, Any],
+    folder_name: str = None,
 ) -> Dict[str, Any]:
     """
     Execute a scraper job in the background.
@@ -77,6 +78,7 @@ def execute_scraper_job(
         job_id: Job UUID as string
         job_config: Job configuration dictionary
         output_config: Output configuration dictionary
+        folder_name: Optional folder name for output (defaults to timestamp)
 
     Returns:
         Result dictionary with job info
@@ -92,6 +94,7 @@ def execute_scraper_job(
             job_id=job_uuid,
             job_config=job_config,
             output_config=output_config,
+            folder_name=folder_name,
         )
 
         # Execute scraper

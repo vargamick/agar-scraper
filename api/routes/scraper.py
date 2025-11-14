@@ -70,12 +70,16 @@ async def create_job(
     Creates a job in the database and queues it for execution.
     """
     try:
+        # Generate folder name with timestamp
+        folder_name = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         # Create job in database
         job = Job(
             name=job_data.name,
             description=job_data.description,
             type=job_data.type,
             status=JobStatus.PENDING,
+            folder_name=folder_name,
             config=job_data.config.model_dump(),
             output=job_data.output.model_dump(),
             schedule=job_data.schedule.model_dump() if job_data.schedule else None,
@@ -106,6 +110,7 @@ async def create_job(
             job_id=str(job.id),
             job_config=job.config,
             output_config=job.output,
+            folder_name=folder_name,
         )
 
         logger.info(f"Job {job.id} queued with task ID: {task.id}")
