@@ -56,7 +56,7 @@ The S3 integration automatically uploads scraper job outputs to AWS S3 for:
 2. Click "Create bucket"
 3. Configure:
    - **Bucket name**: `your-scraper-outputs` (must be globally unique)
-   - **Region**: `us-east-1` (or your preferred region)
+   - **Region**: `ap-southeast-2` (or your preferred region)
    - **Block Public Access**: Keep enabled (recommended)
    - **Versioning**: Optional (recommended for audit trails)
    - **Encryption**: Enable SSE-S3 (recommended)
@@ -67,7 +67,7 @@ The S3 integration automatically uploads scraper job outputs to AWS S3 for:
 # Create bucket
 aws s3api create-bucket \
     --bucket your-scraper-outputs \
-    --region us-east-1
+    --region ap-southeast-2
 
 # Enable versioning (optional)
 aws s3api put-bucket-versioning \
@@ -178,7 +178,7 @@ S3_ENABLED=true
 
 # S3 Bucket Configuration
 S3_BUCKET_NAME=your-scraper-outputs
-S3_REGION=us-east-1
+S3_REGION=ap-southeast-2
 
 # AWS Credentials
 S3_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
@@ -201,7 +201,7 @@ Verify these lines exist:
 environment:
   - S3_ENABLED=${S3_ENABLED:-false}
   - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-  - S3_REGION=${S3_REGION:-us-east-1}
+  - S3_REGION=${S3_REGION:-ap-southeast-2}
   - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
   - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
   - S3_UPLOAD_ON_COMPLETION=${S3_UPLOAD_ON_COMPLETION:-true}
@@ -491,7 +491,7 @@ aws s3 ls s3://your-bucket/scraper-outputs/ --recursive --summarize
 
 ```bash
 # 1. Create S3 bucket
-aws s3 mb s3://my-scraper-outputs --region us-east-1
+aws s3 mb s3://my-scraper-outputs --region ap-southeast-2
 
 # 2. Create IAM user and policy (via Console or CLI)
 
@@ -499,7 +499,7 @@ aws s3 mb s3://my-scraper-outputs --region us-east-1
 cat >> .env << 'EOF'
 S3_ENABLED=true
 S3_BUCKET_NAME=my-scraper-outputs
-S3_REGION=us-east-1
+S3_REGION=ap-southeast-2
 S3_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
 S3_SECRET_ACCESS_KEY=your-secret-key-here
 S3_UPLOAD_ON_COMPLETION=true

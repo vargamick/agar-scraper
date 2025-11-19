@@ -26,7 +26,7 @@ cd "$SCRIPT_DIR"
 
 # Test configuration
 TEST_BUCKET_NAME="${S3_BUCKET_NAME:-agar-documentation}"
-TEST_REGION="${S3_REGION:-us-east-1}"
+TEST_REGION="${S3_REGION:-ap-southeast-2}"
 S3_PREFIX="${S3_PREFIX:-agar/}"
 API_URL="http://localhost:3010"
 TEST_USER="testuser"
@@ -121,8 +121,8 @@ if aws s3 ls "s3://${TEST_BUCKET_NAME}" 2>/dev/null; then
 else
     log_info "Creating bucket: ${TEST_BUCKET_NAME} in region ${TEST_REGION}"
 
-    if [ "$TEST_REGION" = "us-east-1" ]; then
-        # us-east-1 doesn't need LocationConstraint
+    if [ "$TEST_REGION" = "ap-southeast-2" ]; then
+        # ap-southeast-2 doesn't need LocationConstraint
         aws s3api create-bucket \
             --bucket "${TEST_BUCKET_NAME}" \
             --region "${TEST_REGION}"

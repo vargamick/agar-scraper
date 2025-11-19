@@ -5,7 +5,7 @@ JOB_ID="${1:-3c7a41c3-644f-4899-a3fe-e225d71e7dd0}"
 API_URL="http://localhost:3010"
 
 # AWS credentials (should be set in environment)
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-southeast-2}
 
 # Get token
 TOKEN=$(curl -s -X POST "${API_URL}/api/scraper/auth/login" \

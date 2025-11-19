@@ -35,7 +35,7 @@ while true; do
                 sleep 60
 
                 # Check S3 (requires AWS credentials to be set in environment)
-                export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+                export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-southeast-2}
 
                 S3_PATH="agar/$FOLDER/"
                 echo ""

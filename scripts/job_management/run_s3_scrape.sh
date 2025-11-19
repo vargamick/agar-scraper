@@ -23,7 +23,7 @@ TEST_USER="testuser"
 TEST_PASS="testpass123"
 S3_BUCKET="agar-documentation"
 S3_PREFIX="agar/"
-AWS_REGION="us-east-1"
+AWS_REGION="ap-southeast-2"
 
 # Load AWS Credentials from environment
 # Set these in your shell or .env file:

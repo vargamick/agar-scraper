@@ -7,7 +7,7 @@ The S3 integration has been fully configured and is ready to test.
 ### S3 Bucket Configuration
 
 - **Bucket Name**: `agar-documentation`
-- **Region**: `us-east-1`
+- **Region**: `ap-southeast-2`
 - **S3 Prefix**: `agar/`
 - **IAM User**: `agar-s3-user`
 
@@ -40,7 +40,7 @@ The `.env` file has been updated with:
 ```bash
 S3_ENABLED=true
 S3_BUCKET_NAME=your-bucket-name
-S3_REGION=us-east-1
+S3_REGION=ap-southeast-2
 S3_ACCESS_KEY_ID=your-access-key-id
 S3_SECRET_ACCESS_KEY=your-secret-access-key
 S3_UPLOAD_ON_COMPLETION=true
@@ -206,7 +206,7 @@ List all scraper runs in S3:
 ```bash
 export AWS_ACCESS_KEY_ID=your-access-key-id
 export AWS_SECRET_ACCESS_KEY=your-secret-access-key
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_DEFAULT_REGION=ap-southeast-2
 
 aws s3 ls s3://your-bucket-name/agar/
 ```

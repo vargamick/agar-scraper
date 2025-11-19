@@ -154,7 +154,7 @@ API_URL="http://localhost:3010"
 # AWS Configuration
 AWS_ACCESS_KEY_ID="your_key"
 AWS_SECRET_ACCESS_KEY="your_secret"
-AWS_DEFAULT_REGION="us-east-1"
+AWS_DEFAULT_REGION="ap-southeast-2"
 
 # S3 Configuration
 S3_BUCKET="scraper-outputs"
