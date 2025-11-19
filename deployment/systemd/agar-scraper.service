@@ -1,0 +1,28 @@
+[Unit]
+Description=Agar Web Scraper
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ubuntu/apps/agar-scraper
+User=ubuntu
+Group=ubuntu
+
+# Start command
+ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yml up -d
+
+# Stop command
+ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yml down
+
+# Reload command
+ExecReload=/usr/bin/docker-compose -f docker-compose.prod.yml restart
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

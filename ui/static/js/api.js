@@ -3,7 +3,15 @@
  */
 
 const API = {
-    baseUrl: 'http://localhost:3010/api/scraper',
+    // Auto-detect API URL based on environment
+    baseUrl: (() => {
+        // If running on production domain, use relative path (Nginx proxy)
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            return `${window.location.protocol}//${window.location.host}/api/scraper`;
+        }
+        // Local development
+        return 'http://localhost:3010/api/scraper';
+    })(),
     token: null,
     refreshToken: null,
 
