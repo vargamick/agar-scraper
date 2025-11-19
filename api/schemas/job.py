@@ -65,12 +65,27 @@ class WebhookConfig(BaseModel):
     events: List[str] = Field(..., description="Events to trigger webhook")
 
 
+class S3UploadConfig(BaseModel):
+    """AWS S3 upload configuration."""
+    enabled: bool = Field(default=True, description="Enable S3 upload")
+    bucket: Optional[str] = Field(default=None, description="Override default S3 bucket")
+    prefix: Optional[str] = Field(default=None, description="Custom S3 path prefix")
+    includeFiles: List[str] = Field(
+        default=["all_products.json", "categories.json", "results.json"],
+        description="Specific files to upload"
+    )
+    uploadPdfs: bool = Field(default=True, description="Upload PDF files")
+    uploadScreenshots: bool = Field(default=False, description="Upload screenshots")
+    uploadCategories: bool = Field(default=False, description="Upload individual category JSON files")
+
+
 class OutputConfig(BaseModel):
     """Output configuration for job results."""
     saveFiles: bool = Field(default=True, description="Save files locally")
     fileFormat: Literal["json", "markdown", "html"] = Field(default="json", description="File format")
     sendToMemento: Optional[MementoConfig] = Field(default=None, description="Memento config")
     webhook: Optional[WebhookConfig] = Field(default=None, description="Webhook config")
+    uploadToS3: Optional[S3UploadConfig] = Field(default=None, description="S3 upload config")
 
 
 class ScheduleConfig(BaseModel):

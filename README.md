@@ -49,25 +49,43 @@ The **3DN Scraper Template** is a sophisticated web scraping framework that enab
 
 ## 🚀 Quick Start
 
-### Option 1: Docker Deployment (Recommended)
+### Recommended: Docker + Web UI
 
-**Quick Start with Docker:**
+**Start the complete system with REST API and Web UI:**
 
 ```bash
-# 1. Create environment file
-cp docker/.env.template .env
-
-# 2. Start services (pulls Crawl4AI image, builds scraper)
+# 1. Start all services (API, database, workers, Crawl4AI)
 docker-compose up -d
 
-# 3. Run test scrape
-docker-compose run --rm agar-scraper python main.py --client agar --test
+# 2. Start the Web UI
+cd ui
+python3 server.py
 
-# 4. Check results
-ls -la agar_scrapes/
+# 3. Open browser to http://localhost:8080
+# 4. Register/login and create scraping jobs through the UI
 ```
 
-**📘 See [Docker Quick Start Guide](docs/quickstart/DOCKER_QUICKSTART.md) for full instructions**
+**📘 See [UI Guide](docs/UI_GUIDE.md) for full UI documentation**
+
+### Option 1: Docker with API
+
+**Quick Start with REST API:**
+
+```bash
+# 1. Start services
+docker-compose up -d
+
+# 2. Create admin user (optional)
+python3 scripts/utilities/create_admin.py
+
+# 3. Create a scraping job via API
+./scripts/job_management/run_s3_scrape.sh
+
+# 4. Check results
+docker-compose logs api
+```
+
+**📘 See [API Documentation](docs/API_DOCUMENTATION.md) for API reference**
 
 ### Option 2: Local Installation
 

@@ -173,6 +173,146 @@ def send_webhook(
         }
 
 
+@celery_app.task(name="api.jobs.tasks.upload_job_to_s3")
+def upload_job_to_s3(
+    job_id: str,
+    folder_name: str,
+    output_path: str,
+    s3_config: Dict[str, Any] = None,
+) -> Dict[str, Any]:
+    """
+    Upload job output files to AWS S3.
+
+    This task is triggered after a job completes to upload all output
+    files to S3 for long-term storage and downstream processing.
+
+    Args:
+        job_id: Job UUID as string
+        folder_name: Timestamp folder name (YYYYMMDD_HHMMSS)
+        output_path: Local output directory path
+        s3_config: Optional S3 configuration override
+
+    Returns:
+        Result dictionary with upload status and S3 URLs
+    """
+    from api.services.s3_uploader import S3Uploader, S3UploadError
+    from api.config import settings
+    from datetime import datetime
+
+    logger.info(f"Starting S3 upload for job {job_id}")
+
+    # Check if S3 is enabled
+    if not settings.S3_ENABLED:
+        logger.warning(f"S3 upload skipped for job {job_id}: S3 is disabled")
+        return {
+            "job_id": job_id,
+            "status": "skipped",
+            "message": "S3 upload is disabled",
+        }
+
+    try:
+        # Initialize S3 uploader
+        uploader = S3Uploader(
+            job_id=UUID(job_id),
+            folder_name=folder_name,
+            output_path=output_path,
+            s3_config=s3_config or {}
+        )
+
+        # Upload job outputs
+        upload_results = uploader.upload_job_outputs()
+
+        # Get upload statistics
+        upload_stats = uploader.get_upload_stats()
+
+        # Update job output in database with S3 information
+        try:
+            db = get_db_session()
+            repo = JobRepository(db)
+
+            # Get current job
+            job = repo.get_by_id(UUID(job_id))
+            if job:
+                # Update output JSONB with S3 info
+                if job.output is None:
+                    job.output = {}
+
+                job.output['uploadToS3'] = {
+                    'enabled': True,
+                    'status': upload_results['status'],
+                    'uploadedAt': datetime.utcnow().isoformat(),
+                    's3Urls': upload_results['s3_urls'],
+                    'bytesUploaded': upload_stats['total_bytes'],
+                    'filesUploaded': upload_stats['total_files'],
+                    'errors': upload_results.get('errors', [])
+                }
+
+                # Update job stats with upload info
+                if job.stats is None:
+                    job.stats = {}
+
+                job.stats['s3Upload'] = {
+                    'bytesUploaded': upload_stats['total_bytes'],
+                    'filesUploaded': upload_stats['total_files']
+                }
+
+                db.commit()
+                logger.info(f"Updated job {job_id} with S3 upload information")
+
+            db.close()
+
+        except Exception as e:
+            logger.error(f"Failed to update job with S3 info: {e}")
+            # Don't fail the task if database update fails
+
+        logger.info(f"S3 upload completed for job {job_id}: {upload_results['status']}")
+
+        return {
+            "job_id": job_id,
+            "status": upload_results['status'],
+            "s3_urls": upload_results['s3_urls'],
+            "stats": upload_stats,
+            "errors": upload_results.get('errors', [])
+        }
+
+    except S3UploadError as e:
+        logger.error(f"S3 upload failed for job {job_id}: {e}")
+
+        # Update job with error status
+        try:
+            db = get_db_session()
+            repo = JobRepository(db)
+            job = repo.get_by_id(UUID(job_id))
+            if job:
+                if job.output is None:
+                    job.output = {}
+                job.output['uploadToS3'] = {
+                    'enabled': True,
+                    'status': 'failed',
+                    'error': str(e),
+                    'uploadedAt': datetime.utcnow().isoformat()
+                }
+                db.commit()
+            db.close()
+        except Exception as update_error:
+            logger.error(f"Failed to update job with S3 error: {update_error}")
+
+        return {
+            "job_id": job_id,
+            "status": "failed",
+            "error": str(e)
+        }
+
+    except Exception as e:
+        logger.error(f"Unexpected error in S3 upload for job {job_id}: {e}", exc_info=True)
+
+        return {
+            "job_id": job_id,
+            "status": "error",
+            "error": str(e)
+        }
+
+
 @celery_app.task(name="api.jobs.tasks.scheduled_job_runner")
 def scheduled_job_runner(scheduled_job_id: str) -> Dict[str, Any]:
     """

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraper Dashboard</title>
+    <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="login-card">
+                <h1>Web Scraper Dashboard</h1>
+                <p class="subtitle">Sign in to manage your scraping jobs</p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" name="username" required autofocus>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                </form>
+
+                <div class="register-link">
+                    Don't have an account? <a href="#" id="showRegister">Register</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Screen -->
+    <div id="registerScreen" class="screen">
+        <div class="login-container">
+            <div class="login-card">
+                <h1>Create Account</h1>
+                <p class="subtitle">Register to start scraping</p>
+
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="regUsername">Username</label>
+                        <input type="text" id="regUsername" name="username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regEmail">Email</label>
+                        <input type="email" id="regEmail" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regFullName">Full Name</label>
+                        <input type="text" id="regFullName" name="full_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regPassword">Password</label>
+                        <input type="password" id="regPassword" name="password" required minlength="8">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+
+                    <div id="registerError" class="error-message" style="display: none;"></div>
+                </form>
+
+                <div class="register-link">
+                    Already have an account? <a href="#" id="showLogin">Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardScreen" class="screen">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>Web Scraper Dashboard</h1>
+                <div class="header-actions">
+                    <span id="userInfo" class="user-info"></span>
+                    <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="overview">Overview</button>
+            <button class="nav-tab" data-tab="jobs">Jobs</button>
+            <button class="nav-tab" data-tab="create">Create Job</button>
+        </nav>
+
+        <!-- Tab Contents -->
+        <div class="container">
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content active">
+                <h2>Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Jobs</div>
+                        <div class="stat-value" id="statTotalJobs">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Running</div>
+                        <div class="stat-value" id="statRunningJobs">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Queued</div>
+                        <div class="stat-value" id="statQueuedJobs">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-value" id="statCompletedJobs">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Failed</div>
+                        <div class="stat-value" id="statFailedJobs">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Pages Scraped</div>
+                        <div class="stat-value" id="statPagesScraped">-</div>
+                    </div>
+                </div>
+
+                <h2>Recent Jobs</h2>
+                <div id="recentJobsList" class="jobs-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Jobs Tab -->
+            <div id="jobsTab" class="tab-content">
+                <div class="jobs-header">
+                    <h2>All Jobs</h2>
+                    <div class="jobs-filters">
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="running">Running</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button id="refreshJobsBtn" class="btn btn-secondary">Refresh</button>
+                    </div>
+                </div>
+                <div id="jobsList" class="jobs-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Create Job Tab -->
+            <div id="createTab" class="tab-content">
+                <h2>Create New Scraping Job</h2>
+                <form id="createJobForm" class="create-job-form">
+                    <div class="form-section">
+                        <h3>Basic Information</h3>
+                        <div class="form-group">
+                            <label for="jobName">Job Name *</label>
+                            <input type="text" id="jobName" required placeholder="e.g., agar-full-scrape">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="jobDescription">Description</label>
+                            <textarea id="jobDescription" rows="3" placeholder="Describe the purpose of this scraping job"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Scraping Configuration</h3>
+                        <div class="form-group">
+                            <label for="startUrls">Start URLs * (one per line)</label>
+                            <textarea id="startUrls" rows="3" required placeholder="https://www.example.com"></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="maxPages">Max Pages</label>
+                                <input type="number" id="maxPages" value="100" min="1">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="crawlDepth">Crawl Depth</label>
+                                <input type="number" id="crawlDepth" value="3" min="1" max="10">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="followLinks" checked>
+                                Follow Links
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="respectRobotsTxt" checked>
+                                Respect robots.txt
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Output Configuration</h3>
+                        <div class="form-group">
+                            <label for="fileFormat">File Format</label>
+                            <select id="fileFormat">
+                                <option value="json">JSON</option>
+                                <option value="markdown">Markdown</option>
+                                <option value="html">HTML</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="saveFiles" checked>
+                                Save Files Locally
+                            </label>
+                        </div>
+
+                        <div class="form-section">
+                            <h4>S3 Upload Configuration</h4>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="uploadToS3" checked>
+                                    Upload to S3
+                                </label>
+                            </div>
+
+                            <div id="s3ConfigSection" style="margin-left: 20px;">
+                                <div class="form-group">
+                                    <label for="s3Bucket">S3 Bucket (optional)</label>
+                                    <input type="text" id="s3Bucket" placeholder="Leave empty for default bucket">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="s3Prefix">S3 Path Prefix (optional)</label>
+                                    <input type="text" id="s3Prefix" placeholder="custom/path/prefix">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="uploadPdfs" checked>
+                                        Upload PDF files
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="uploadScreenshots">
+                                        Upload Screenshots
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="uploadCategories">
+                                        Upload Individual Category Files
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">Create and Start Job</button>
+                        <div id="createJobError" class="error-message" style="display: none;"></div>
+                        <div id="createJobSuccess" class="success-message" style="display: none;"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Detail Modal -->
+    <div id="jobDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalJobName">Job Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="job-detail-tabs">
+                    <button class="job-detail-tab active" data-detail-tab="info">Info</button>
+                    <button class="job-detail-tab" data-detail-tab="logs">Logs</button>
+                    <button class="job-detail-tab" data-detail-tab="results">Results</button>
+                </div>
+
+                <div id="jobInfoTab" class="job-detail-content active">
+                    <div id="jobDetailInfo"></div>
+                </div>
+
+                <div id="jobLogsTab" class="job-detail-content">
+                    <div id="jobLogs" class="logs-container"></div>
+                </div>
+
+                <div id="jobResultsTab" class="job-detail-content">
+                    <div id="jobResults" class="results-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/api.js"></script>
+    <script src="static/js/app.js"></script>
+</body>
+</html>

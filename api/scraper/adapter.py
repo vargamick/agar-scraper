@@ -91,11 +91,29 @@ class ScraperAdapter:
 
             # Step 1: Discover categories (for web scraping)
             self.progress_reporter.log_info("Discovering categories")
+            self.progress_reporter.update_progress(
+                pages_scraped=0,
+                total_pages=max_pages,
+                started_at=start_time,
+            )
+            self.stats["phase"] = "discovering_categories"
+            self.progress_reporter.update_stats(**self.stats)
+
             categories = await self._discover_categories(start_urls)
+
+            self.stats["categories_found"] = len(categories)
+            self.progress_reporter.update_stats(**self.stats)
 
             # Step 2: Collect product URLs
             self.progress_reporter.log_info(f"Collecting products from {len(categories)} categories")
+            self.stats["phase"] = "collecting_products"
+            self.progress_reporter.update_stats(**self.stats)
+
             products = await self._collect_products(categories)
+
+            self.stats["products_found"] = len(products)
+            self.stats["phase"] = "scraping_products"
+            self.progress_reporter.update_stats(**self.stats)
 
             # Update progress
             total_products = len(products)
@@ -121,6 +139,9 @@ class ScraperAdapter:
             # Update final statistics
             self.stats["items_extracted"] = len(scraped_data)
             self.progress_reporter.update_stats(**self.stats)
+
+            # Step 6: Trigger S3 upload (if enabled)
+            self._trigger_s3_upload()
 
             # Mark as completed
             self.progress_reporter.update_status(JobStatus.COMPLETED)
@@ -451,3 +472,59 @@ class ScraperAdapter:
             self.stats["errors"] += 1
             self.progress_reporter.log_error(f"Result collection failed: {str(e)}")
             raise
+
+    def _trigger_s3_upload(self):
+        """
+        Trigger S3 upload task if enabled.
+
+        This method queues a Celery task to upload job outputs to S3.
+        The upload happens asynchronously after the job is marked as completed.
+        """
+        from api.config import settings
+
+        # Check if S3 upload is enabled globally
+        if not settings.S3_ENABLED:
+            logger.debug(f"S3 upload disabled globally for job {self.job_id}")
+            return
+
+        # Check if S3 upload is enabled in output config
+        s3_config = self.config_builder.output_config.get('uploadToS3')
+
+        if s3_config and isinstance(s3_config, dict):
+            # Check if explicitly disabled in job config
+            if not s3_config.get('enabled', True):
+                logger.info(f"S3 upload disabled in job config for job {self.job_id}")
+                return
+        elif s3_config is False:
+            logger.info(f"S3 upload disabled in job config for job {self.job_id}")
+            return
+        else:
+            # S3 is enabled globally, check if auto-upload is enabled
+            if not settings.S3_UPLOAD_ON_COMPLETION:
+                logger.debug(f"S3 auto-upload disabled for job {self.job_id}")
+                return
+
+            # Use default config
+            s3_config = {}
+
+        # Import and queue the upload task
+        try:
+            from api.jobs.tasks import upload_job_to_s3
+
+            logger.info(f"Queueing S3 upload for job {self.job_id}")
+            self.progress_reporter.log_info("Queueing S3 upload task")
+
+            # Queue the upload task (runs asynchronously)
+            upload_job_to_s3.delay(
+                job_id=str(self.job_id),
+                folder_name=self.config_builder.folder_name,
+                output_path=self.output_path,
+                s3_config=s3_config if isinstance(s3_config, dict) else {}
+            )
+
+            logger.info(f"S3 upload task queued successfully for job {self.job_id}")
+
+        except Exception as e:
+            # Log error but don't fail the job
+            logger.error(f"Failed to queue S3 upload task for job {self.job_id}: {e}")
+            self.progress_reporter.log_warning(f"Failed to queue S3 upload: {str(e)}")

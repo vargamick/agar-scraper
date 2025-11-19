@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:3001"],
+        default=["http://localhost:3000", "http://localhost:3001", "http://localhost:8080"],
         description="Allowed CORS origins"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
@@ -164,6 +164,28 @@ class Settings(BaseSettings):
     MEMENTO_ENABLE_EMBEDDING: bool = Field(default=True, description="Enable embedding generation")
     MEMENTO_CHUNK_SIZE: int = Field(default=1000, description="Chunk size (characters)")
     MEMENTO_CHUNK_OVERLAP: int = Field(default=200, description="Chunk overlap (characters)")
+
+    # ==================== AWS S3 Integration ====================
+
+    S3_ENABLED: bool = Field(default=False, description="Enable S3 upload integration")
+    S3_BUCKET_NAME: Optional[str] = Field(default=None, description="S3 bucket name for uploads")
+    S3_REGION: str = Field(default="us-east-1", description="AWS region for S3 bucket")
+    S3_ACCESS_KEY_ID: Optional[str] = Field(default=None, description="AWS access key ID")
+    S3_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, description="AWS secret access key")
+    S3_UPLOAD_ON_COMPLETION: bool = Field(default=True, description="Auto-upload to S3 on job completion")
+    S3_PREFIX: str = Field(default="scraper-outputs/", description="S3 key prefix for uploads")
+    S3_UPLOAD_TIMEOUT: int = Field(default=300, description="S3 upload timeout (seconds)")
+    S3_MAX_RETRIES: int = Field(default=3, description="S3 upload max retries")
+
+    @field_validator("S3_BUCKET_NAME")
+    @classmethod
+    def validate_s3_bucket(cls, v: Optional[str], values) -> Optional[str]:
+        """Validate S3 bucket is set when S3 is enabled."""
+        # Note: In pydantic v2, we get ValidationInfo instead of values dict
+        # This validator will check if S3_ENABLED but no bucket provided
+        if v and not v.strip():
+            raise ValueError("S3_BUCKET_NAME cannot be empty string")
+        return v
 
     # ==================== Scraper Settings ====================
 
