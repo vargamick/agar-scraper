@@ -17,6 +17,7 @@ env/
 *.swo
 *~
 .claude/*
+.ssh/*
 
 # OS
 .DS_Store
