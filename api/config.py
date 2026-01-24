@@ -41,10 +41,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development", description="Environment: development, staging, production")
     DEBUG: bool = Field(default=False, description="Debug mode")
 
-    # CORS
-    CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:3001", "http://localhost:8080"],
-        description="Allowed CORS origins"
+    # CORS (accepts comma-separated string or JSON array)
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:3000,http://localhost:3001,http://localhost:8080",
+        description="Allowed CORS origins (comma-separated)"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = ["*"]
@@ -241,8 +241,19 @@ class Settings(BaseSettings):
         return self.DATABASE_URL
 
     def get_cors_origins(self) -> List[str]:
-        """Get CORS origins as list."""
+        """Get CORS origins as list.
+
+        Handles both comma-separated strings and JSON array format.
+        """
+        import json
         if isinstance(self.CORS_ORIGINS, str):
+            # Try parsing as JSON first (handles ["url1", "url2"] format)
+            if self.CORS_ORIGINS.startswith("["):
+                try:
+                    return json.loads(self.CORS_ORIGINS)
+                except json.JSONDecodeError:
+                    pass
+            # Fall back to comma-separated
             return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return self.CORS_ORIGINS
 
