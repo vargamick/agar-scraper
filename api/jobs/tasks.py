@@ -341,3 +341,142 @@ def scheduled_job_runner(scheduled_job_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Scheduled job {scheduled_job_id} failed: {e}")
         raise
+
+
+@celery_app.task(name="api.jobs.tasks.process_application_matrix")
+def process_application_matrix(
+    job_id: str = None,
+    matrix_file_path: str = None,
+    scraped_products_path: str = None,
+    memento_config: Dict[str, Any] = None,
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    """
+    Process Product Application Matrix and send to Memento knowledge graph.
+
+    This task parses the application matrix file, extracts entities and
+    relationships, and uploads them to the Memento API.
+
+    Can be triggered:
+    - After a scraping job completes (with job_id)
+    - Independently for matrix-only processing
+
+    Args:
+        job_id: Optional job UUID (for linking to scraping job)
+        matrix_file_path: Path to the matrix CSV/Excel file
+        scraped_products_path: Path to scraped all_products.json
+        memento_config: Memento configuration override
+        dry_run: If True, don't actually send to Memento
+
+    Returns:
+        Result dictionary with processing statistics
+    """
+    from pathlib import Path
+    from datetime import datetime
+    from api.config import settings
+    from config.matrix_config import S3_CONFIG
+
+    logger.info(f"Starting matrix processing{f' for job {job_id}' if job_id else ''}")
+
+    # Determine matrix file path
+    if not matrix_file_path:
+        # Use default from S3 config
+        matrix_file_path = f"/app/scraper_data/reference/{S3_CONFIG['default_matrix_file']}"
+        logger.info(f"Using default matrix file: {matrix_file_path}")
+
+    # Check if Memento is enabled
+    if not settings.MEMENTO_ENABLED and not dry_run:
+        logger.warning("Memento integration is disabled")
+        return {
+            "job_id": job_id,
+            "status": "skipped",
+            "message": "Memento integration is disabled (set MEMENTO_ENABLED=true)",
+        }
+
+    try:
+        # Import here to avoid circular imports
+        from core.matrix.processor import MatrixProcessor, ProcessorConfig
+
+        # Build configuration
+        config = ProcessorConfig(
+            matrix_file_path=Path(matrix_file_path),
+            scraped_products_path=Path(scraped_products_path) if scraped_products_path else None,
+            memento_instance_id=(memento_config or {}).get('instanceId') or settings.MEMENTO_DEFAULT_INSTANCE,
+            memento_api_url=settings.MEMENTO_API_URL,
+            memento_api_key=settings.MEMENTO_API_KEY,
+            match_threshold=0.85,
+            dry_run=dry_run,
+        )
+
+        # Create processor
+        processor = MatrixProcessor(config)
+
+        # Run processing
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(processor.process())
+        finally:
+            loop.close()
+
+        # Update job in database if job_id provided
+        if job_id and not dry_run:
+            try:
+                db = get_db_session()
+                repo = JobRepository(db)
+                job = repo.get_by_id(UUID(job_id))
+
+                if job:
+                    if job.output is None:
+                        job.output = {}
+
+                    job.output['mementoProcessing'] = {
+                        'enabled': True,
+                        'status': 'success' if result.success else 'failed',
+                        'processedAt': datetime.utcnow().isoformat(),
+                        'entitiesCreated': result.entities_created,
+                        'relationshipsCreated': result.relationships_created,
+                        'productsMatched': result.products_matched,
+                        'productsUnmatched': result.products_unmatched,
+                        'processingTimeSeconds': result.processing_time_seconds,
+                        'errors': result.errors,
+                    }
+                    db.commit()
+                    logger.info(f"Updated job {job_id} with Memento processing results")
+
+                db.close()
+
+            except Exception as e:
+                logger.error(f"Failed to update job with Memento results: {e}")
+
+        logger.info(
+            f"Matrix processing completed: "
+            f"{result.entities_created} entities, {result.relationships_created} relationships"
+        )
+
+        return {
+            "job_id": job_id,
+            "status": "success" if result.success else "failed",
+            "entities_created": result.entities_created,
+            "relationships_created": result.relationships_created,
+            "products_matched": result.products_matched,
+            "products_unmatched": result.products_unmatched,
+            "processing_time_seconds": result.processing_time_seconds,
+            "errors": result.errors,
+        }
+
+    except FileNotFoundError as e:
+        logger.error(f"Matrix file not found: {e}")
+        return {
+            "job_id": job_id,
+            "status": "failed",
+            "error": f"Matrix file not found: {e}",
+        }
+
+    except Exception as e:
+        logger.error(f"Matrix processing failed: {e}", exc_info=True)
+        return {
+            "job_id": job_id,
+            "status": "failed",
+            "error": str(e),
+        }

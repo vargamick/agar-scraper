@@ -165,6 +165,13 @@ class Settings(BaseSettings):
     MEMENTO_CHUNK_SIZE: int = Field(default=1000, description="Chunk size (characters)")
     MEMENTO_CHUNK_OVERLAP: int = Field(default=200, description="Chunk overlap (characters)")
 
+    # Matrix processing
+    MATRIX_FILE_S3_PATH: Optional[str] = Field(
+        default="agar/reference-data/application-matrix/AskAgar_ProductsData_v1.xlsx",
+        description="S3 path to Product Application Matrix file"
+    )
+    MATRIX_MATCH_THRESHOLD: float = Field(default=0.85, description="Product matching threshold (0-1)")
+
     # ==================== AWS S3 Integration ====================
 
     S3_ENABLED: bool = Field(default=False, description="Enable S3 upload integration")

@@ -143,6 +143,9 @@ class ScraperAdapter:
             # Step 6: Trigger S3 upload (if enabled)
             self._trigger_s3_upload()
 
+            # Step 7: Trigger matrix processing (if enabled)
+            self._trigger_matrix_processing()
+
             # Mark as completed
             self.progress_reporter.update_status(JobStatus.COMPLETED)
             self.progress_reporter.log_info(f"Scraper job completed successfully. {len(scraped_data)} items extracted.")
@@ -523,6 +526,62 @@ class ScraperAdapter:
             )
 
             logger.info(f"S3 upload task queued successfully for job {self.job_id}")
+
+    def _trigger_matrix_processing(self):
+        """
+        Trigger matrix processing task if enabled.
+
+        This method queues a Celery task to process the Product Application Matrix
+        and send entities/relationships to the Memento knowledge graph.
+        """
+        from api.config import settings
+
+        # Check if Memento integration is enabled
+        if not settings.MEMENTO_ENABLED:
+            logger.debug(f"Memento integration disabled for job {self.job_id}")
+            return
+
+        # Check if matrix processing is enabled in output config
+        memento_config = self.config_builder.output_config.get('memento')
+
+        if memento_config and isinstance(memento_config, dict):
+            if not memento_config.get('enabled', True):
+                logger.info(f"Matrix processing disabled in job config for job {self.job_id}")
+                return
+        elif memento_config is False:
+            logger.info(f"Matrix processing disabled in job config for job {self.job_id}")
+            return
+        else:
+            memento_config = {}
+
+        # Import and queue the processing task
+        try:
+            from api.jobs.tasks import process_application_matrix
+            from pathlib import Path
+
+            # Determine paths
+            all_products_path = Path(self.output_path) / "all_products.json"
+
+            # Only trigger if products were scraped
+            if not all_products_path.exists():
+                logger.debug(f"No products file found, skipping matrix processing for job {self.job_id}")
+                return
+
+            logger.info(f"Queueing matrix processing for job {self.job_id}")
+            self.progress_reporter.log_info("Queueing knowledge graph processing task")
+
+            # Queue the processing task (runs asynchronously)
+            process_application_matrix.delay(
+                job_id=str(self.job_id),
+                scraped_products_path=str(all_products_path),
+                memento_config=memento_config if isinstance(memento_config, dict) else {},
+            )
+
+            logger.info(f"Matrix processing task queued successfully for job {self.job_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to queue matrix processing task: {e}")
+            self.progress_reporter.log_warning(f"Matrix processing task queueing failed: {e}")
 
         except Exception as e:
             # Log error but don't fail the job
