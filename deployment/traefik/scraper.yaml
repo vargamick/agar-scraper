@@ -1,0 +1,51 @@
+# Traefik dynamic configuration for scraper.askagar.3dn.com.au
+# Routes traffic to the Agar Scraper API
+
+http:
+  routers:
+    # Main Scraper API router (HTTPS)
+    scraper-api:
+      rule: "Host(`scraper.askagar.3dn.com.au`)"
+      entryPoints:
+        - https
+      service: scraper-api-service
+      tls:
+        certResolver: letsencrypt
+      priority: 10
+
+    # HTTP to HTTPS redirect
+    scraper-api-http:
+      rule: "Host(`scraper.askagar.3dn.com.au`)"
+      entryPoints:
+        - http
+      middlewares:
+        - redirect-to-https-scraper
+      service: scraper-api-service
+      priority: 10
+
+    # Scraper UI router (HTTPS) - Optional
+    scraper-ui:
+      rule: "Host(`scraper.askagar.3dn.com.au`) && PathPrefix(`/ui`)"
+      entryPoints:
+        - https
+      service: scraper-ui-service
+      tls:
+        certResolver: letsencrypt
+      priority: 20
+
+  middlewares:
+    redirect-to-https-scraper:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  services:
+    scraper-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://scraper-api:3010"
+
+    scraper-ui-service:
+      loadBalancer:
+        servers:
+          - url: "http://scraper-ui:80"
