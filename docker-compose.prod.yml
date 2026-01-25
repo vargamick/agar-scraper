@@ -1,5 +1,5 @@
 # 3DN Scraper - Production Docker Compose Configuration
-# For deployment to AWS LightSail or other production environments
+# Optimized for Coolify deployment
 
 version: '3.8'
 
@@ -7,7 +7,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: scraper-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-scraper_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -23,17 +22,10 @@ services:
       timeout: 5s
       retries: 5
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
 
   # Redis (for job queue and caching)
   redis:
     image: redis:7-alpine
-    container_name: scraper-redis
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
@@ -45,17 +37,10 @@ services:
       timeout: 5s
       retries: 5
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
 
   # Crawl4AI Service - Web scraping engine
   crawl4ai:
     image: unclecode/crawl4ai:latest
-    container_name: crawl4ai-service
     environment:
       - PYTHONUNBUFFERED=1
     shm_size: 2g
@@ -65,32 +50,23 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     networks:
       - scraper-network
     volumes:
       - crawl4ai-cache:/root/.crawl4ai
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
 
   # Scraper API Service
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: scraper-api
     expose:
-      - "3010"  # Expose to Docker network only (Traefik handles external routing)
+      - "3010"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      crawl4ai:
         condition: service_healthy
     environment:
       # Database
@@ -124,12 +100,9 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       # CORS
       - CORS_ORIGINS=${CORS_ORIGINS}
-    env_file:
-      - .env
     volumes:
-      - ./scraper_data:/app/scraper_data
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
+      - scraper-data:/app/scraper_data
+      - scraper-logs:/app/logs
     networks:
       - scraper-network
     command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3010", "--workers", "4"]
@@ -139,26 +112,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+      start_period: 120s
 
   # Celery Worker (for background jobs)
   celery-worker:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: scraper-celery-worker
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      crawl4ai:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-scraper_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-scraper_db}
@@ -176,40 +140,13 @@ services:
       - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
       - S3_UPLOAD_ON_COMPLETION=${S3_UPLOAD_ON_COMPLETION:-true}
       - S3_PREFIX=${S3_PREFIX:-agar/}
-    env_file:
-      - .env
     volumes:
-      - ./scraper_data:/app/scraper_data
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
+      - scraper-data:/app/scraper_data
+      - scraper-logs:/app/logs
     networks:
       - scraper-network
     command: ["celery", "-A", "api.jobs.celery_app", "worker", "--loglevel=info", "-Q", "celery,scraper,webhooks", "--concurrency=4"]
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
-
-  # UI Server - Serves static web interface
-  ui:
-    image: nginx:alpine
-    container_name: scraper-ui
-    expose:
-      - "80"  # Expose to Docker network only (Traefik handles external routing)
-    volumes:
-      - ./ui:/usr/share/nginx/html:ro
-    networks:
-      - scraper-network
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
 
 networks:
   scraper-network:
@@ -221,4 +158,8 @@ volumes:
   redis-data:
     driver: local
   crawl4ai-cache:
+    driver: local
+  scraper-data:
+    driver: local
+  scraper-logs:
     driver: local
