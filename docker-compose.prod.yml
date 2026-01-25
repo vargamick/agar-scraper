@@ -83,8 +83,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: scraper-api
-    ports:
-      - "127.0.0.1:3010:3010"  # Only expose to localhost (nginx proxy)
+    expose:
+      - "3010"  # Expose to Docker network only (Traefik handles external routing)
     depends_on:
       postgres:
         condition: service_healthy
@@ -197,8 +197,8 @@ services:
   ui:
     image: nginx:alpine
     container_name: scraper-ui
-    ports:
-      - "127.0.0.1:8080:80"  # Only expose to localhost (nginx proxy)
+    expose:
+      - "80"  # Expose to Docker network only (Traefik handles external routing)
     volumes:
       - ./ui:/usr/share/nginx/html:ro
       - ./deployment/nginx/ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
