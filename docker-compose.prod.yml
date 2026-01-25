@@ -201,7 +201,6 @@ services:
       - "80"  # Expose to Docker network only (Traefik handles external routing)
     volumes:
       - ./ui:/usr/share/nginx/html:ro
-      - ./deployment/nginx/ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - scraper-network
     restart: always
