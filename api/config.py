@@ -41,10 +41,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development", description="Environment: development, staging, production")
     DEBUG: bool = Field(default=False, description="Debug mode")
 
-    # CORS (accepts comma-separated string or JSON array)
-    CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:3001,http://localhost:8080",
-        description="Allowed CORS origins (comma-separated)"
+    # CORS
+    CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:3001", "http://localhost:8080"],
+        description="Allowed CORS origins"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = ["*"]
@@ -165,13 +165,6 @@ class Settings(BaseSettings):
     MEMENTO_CHUNK_SIZE: int = Field(default=1000, description="Chunk size (characters)")
     MEMENTO_CHUNK_OVERLAP: int = Field(default=200, description="Chunk overlap (characters)")
 
-    # Matrix processing
-    MATRIX_FILE_S3_PATH: Optional[str] = Field(
-        default="agar/reference-data/application-matrix/AskAgar_ProductsData_v1.xlsx",
-        description="S3 path to Product Application Matrix file"
-    )
-    MATRIX_MATCH_THRESHOLD: float = Field(default=0.85, description="Product matching threshold (0-1)")
-
     # ==================== AWS S3 Integration ====================
 
     S3_ENABLED: bool = Field(default=False, description="Enable S3 upload integration")
@@ -241,19 +234,8 @@ class Settings(BaseSettings):
         return self.DATABASE_URL
 
     def get_cors_origins(self) -> List[str]:
-        """Get CORS origins as list.
-
-        Handles both comma-separated strings and JSON array format.
-        """
-        import json
+        """Get CORS origins as list."""
         if isinstance(self.CORS_ORIGINS, str):
-            # Try parsing as JSON first (handles ["url1", "url2"] format)
-            if self.CORS_ORIGINS.startswith("["):
-                try:
-                    return json.loads(self.CORS_ORIGINS)
-                except json.JSONDecodeError:
-                    pass
-            # Fall back to comma-separated
             return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return self.CORS_ORIGINS
 
