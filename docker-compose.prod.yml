@@ -75,8 +75,10 @@ services:
       # API
       - API_HOST=0.0.0.0
       - API_PORT=3010
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - DEBUG=false
+      # API Key auth
+      - API_KEY=${API_KEY:-}
       # Crawl4AI
       - CRAWL4AI_API_BASE_URL=http://crawl4ai:11235
       - ACTIVE_CLIENT=agar
