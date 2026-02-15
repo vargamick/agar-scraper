@@ -293,7 +293,7 @@ async def authenticate_with_api_key(
     if not user:
         user = User(
             username=service_username,
-            email="service@scraper.internal",
+            email="service-account@scraper.3dn.com.au",
             password_hash=hash_password(settings.API_KEY),
             full_name="API Service Account",
             is_active=True,
@@ -302,10 +302,12 @@ async def authenticate_with_api_key(
         )
         user_repo.create(user)
         db.commit()
+        db.refresh(user)
         logger.info("Created service account user for API key authentication")
     else:
         user.last_login = datetime.utcnow()
         db.commit()
+        db.refresh(user)
 
     logger.info("API key authentication successful")
 
