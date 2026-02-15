@@ -286,44 +286,54 @@ async def authenticate_with_api_key(
             detail="Invalid API key",
         )
 
-    # Find or create the service account user
-    service_username = "service-account"
-    user = user_repo.get_by_username(service_username)
+    try:
+        # Find or create the service account user
+        service_username = "service-account"
+        user = user_repo.get_by_username(service_username)
 
-    if not user:
-        user = User(
-            username=service_username,
-            email="service-account@scraper.3dn.com.au",
-            password_hash=hash_password(settings.API_KEY),
-            full_name="API Service Account",
-            is_active=True,
-            is_superuser=True,
-            last_login=datetime.utcnow(),
+        if not user:
+            user = User(
+                username=service_username,
+                email="service-account@scraper.3dn.com.au",
+                password_hash=hash_password(settings.API_KEY),
+                full_name="API Service Account",
+                is_active=True,
+                is_superuser=True,
+                last_login=datetime.utcnow(),
+            )
+            user_repo.create(user)
+            db.commit()
+            db.refresh(user)
+            logger.info("Created service account user for API key authentication")
+        else:
+            user.last_login = datetime.utcnow()
+            db.commit()
+            db.refresh(user)
+
+        logger.info("API key authentication successful")
+
+        # Generate tokens
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+
+        token_response = TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserResponse.model_validate(user),
         )
-        user_repo.create(user)
-        db.commit()
-        db.refresh(user)
-        logger.info("Created service account user for API key authentication")
-    else:
-        user.last_login = datetime.utcnow()
-        db.commit()
-        db.refresh(user)
 
-    logger.info("API key authentication successful")
+        return SuccessResponse(data=token_response)
 
-    # Generate tokens
-    access_token = create_access_token(user.id)
-    refresh_token = create_refresh_token(user.id)
-
-    token_response = TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user=UserResponse.model_validate(user),
-    )
-
-    return SuccessResponse(data=token_response)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"API key auth error: {type(e).__name__}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Authentication error: {type(e).__name__}: {str(e)}",
+        )
 
 
 @router.get("/me", response_model=SuccessResponse[UserResponse])
