@@ -101,7 +101,7 @@ services:
       - scraper-logs:/app/logs
     networks:
       - scraper-network
-    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3010", "--workers", "4"]
+    command: ["bash", "/app/docker/start.sh"]
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3010/api/scraper/health"]
