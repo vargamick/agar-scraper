@@ -26,6 +26,7 @@ from api.schemas.user import (
     UserResponse,
     TokenResponse,
     RefreshTokenRequest,
+    ApiKeyRequest,
 )
 from api.schemas.common import SuccessResponse
 from api.auth import (
@@ -242,6 +243,79 @@ async def refresh_token(
     token_response = TokenResponse(
         access_token=access_token,
         refresh_token=new_refresh_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=UserResponse.model_validate(user),
+    )
+
+    return SuccessResponse(data=token_response)
+
+
+@router.post("/api-key", response_model=SuccessResponse[TokenResponse])
+async def authenticate_with_api_key(
+    request: ApiKeyRequest,
+    db: Session = Depends(get_session),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    """
+    Authenticate using an API key to receive JWT tokens.
+
+    Creates a service account user on first use. Subsequent calls
+    return tokens for the existing service account.
+
+    Args:
+        request: API key request
+        db: Database session
+        user_repo: User repository
+
+    Returns:
+        Success response with tokens and user info
+
+    Raises:
+        HTTPException: If API key is invalid or not configured
+    """
+    if not settings.API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API key authentication is not configured",
+        )
+
+    if request.api_key != settings.API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+        )
+
+    # Find or create the service account user
+    service_username = "service-account"
+    user = user_repo.get_by_username(service_username)
+
+    if not user:
+        user = User(
+            username=service_username,
+            email="service@scraper.internal",
+            password_hash=hash_password(settings.API_KEY),
+            full_name="API Service Account",
+            is_active=True,
+            is_superuser=True,
+            last_login=datetime.utcnow(),
+        )
+        user_repo.create(user)
+        db.commit()
+        logger.info("Created service account user for API key authentication")
+    else:
+        user.last_login = datetime.utcnow()
+        db.commit()
+
+    logger.info("API key authentication successful")
+
+    # Generate tokens
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
+
+    token_response = TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserResponse.model_validate(user),

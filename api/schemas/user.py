@@ -162,6 +162,21 @@ class RefreshTokenRequest(BaseModel):
         }
 
 
+class ApiKeyRequest(BaseModel):
+    """
+    Schema for API key authentication request.
+    """
+
+    api_key: str = Field(..., description="API key for service account authentication")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "api_key": "your-api-key-here",
+            }
+        }
+
+
 class UserUpdate(BaseModel):
     """
     Schema for updating user information.

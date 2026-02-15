@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, description="Access token expiration (minutes)")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, description="Refresh token expiration (days)")
 
+    # API Key authentication (alternative to username/password)
+    API_KEY: Optional[str] = Field(default=None, description="API key for service account authentication")
+
     # Password hashing
     PASSWORD_MIN_LENGTH: int = 8
     PASSWORD_HASH_SCHEMES: List[str] = ["bcrypt"]
