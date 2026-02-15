@@ -48,13 +48,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         logger.error(f"Failed to initialize database: {e}")
         raise
 
-    # Create tables (in development only - use Alembic in production)
-    if settings.is_development:
-        try:
-            db_manager.create_all_tables()
-            logger.info("Database tables created")
-        except Exception as e:
-            logger.warning(f"Failed to create tables: {e}")
+    # Create tables if they don't exist
+    try:
+        db_manager.create_all_tables()
+        logger.info("Database tables created/verified")
+    except Exception as e:
+        logger.warning(f"Failed to create tables: {e}")
 
     logger.info(f"API server ready at http://{settings.API_HOST}:{settings.API_PORT}{settings.API_PREFIX}")
 
