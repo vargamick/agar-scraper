@@ -1,8 +1,6 @@
 # 3DN Scraper - Production Docker Compose Configuration
 # Optimized for Coolify deployment
 
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
