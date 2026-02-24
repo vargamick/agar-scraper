@@ -126,6 +126,7 @@ class ProgressReporter:
         items_extracted: int = 0,
         errors: int = 0,
         retries: int = 0,
+        **kwargs,
     ):
         """
         Update job statistics.
@@ -135,6 +136,7 @@ class ProgressReporter:
             items_extracted: Items extracted
             errors: Error count
             retries: Retry count
+            **kwargs: Additional stats fields (e.g. phase, categories_found)
 
         Raises:
             Exception: If stats update fails
@@ -146,6 +148,9 @@ class ProgressReporter:
                 "errors": errors,
                 "retries": retries,
             }
+            # Include any additional stats fields
+            for key, value in kwargs.items():
+                stats[key] = value
 
             repo = self._get_repository()
             repo.update_stats(self.job_id, stats)

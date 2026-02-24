@@ -150,9 +150,15 @@ class ScraperAdapter:
         except Exception as e:
             logger.error(f"Scraper job failed: {e}", exc_info=True)
             self.stats["errors"] += 1
-            self.progress_reporter.update_stats(**self.stats)
-            self.progress_reporter.update_status(JobStatus.FAILED)
-            self.progress_reporter.log_error(f"Scraper job failed: {str(e)}")
+            try:
+                self.progress_reporter.update_stats(**self.stats)
+            except Exception as stats_error:
+                logger.error(f"Failed to update stats during error handling: {stats_error}")
+            try:
+                self.progress_reporter.update_status(JobStatus.FAILED)
+                self.progress_reporter.log_error(f"Scraper job failed: {str(e)}")
+            except Exception as status_error:
+                logger.error(f"Failed to update job status to FAILED: {status_error}")
             raise
 
         finally:

@@ -38,9 +38,14 @@ class JobTask(Task):
         """
         logger.error(f"Task {task_id} failed: {exc}", exc_info=einfo)
 
-        # Update job status to failed
+        # Extract job_id from args or kwargs
+        job_id = None
         if args and len(args) > 0:
             job_id = args[0]
+        elif kwargs and "job_id" in kwargs:
+            job_id = kwargs["job_id"]
+
+        if job_id:
             try:
                 db = get_db_session()
                 repo = JobRepository(db)
