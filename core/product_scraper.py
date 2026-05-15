@@ -24,6 +24,50 @@ from config.config_loader import ConfigLoader
 from config.base_config import BaseConfig
 from core.utils import save_json, load_json, clean_product_name, save_screenshot, sanitize_filename
 
+
+def _classify_crawl_failure(result) -> tuple:
+    """Classify a Crawl4AI failure result. Returns (category, diagnostics_dict)."""
+    status_code = getattr(result, 'status_code', None)
+    error_msg = getattr(result, 'error_message', '') or ''
+    response_headers = getattr(result, 'response_headers', {}) or {}
+    html = getattr(result, 'html', '') or ''
+
+    notable_headers = {
+        k: v for k, v in response_headers.items()
+        if any(s in k.lower() for s in ('cf-', 'x-cache', 'server', 'x-powered-by', 'retry-after'))
+    }
+
+    header_keys_lower = {k.lower() for k in response_headers}
+    html_lower = html.lower()
+    is_cf_block = (
+        bool({'cf-ray', 'cf-mitigated'} & header_keys_lower) or
+        any(s in html_lower for s in ('cloudflare', 'cf-browser-verification', 'error 1020', 'just a moment'))
+    )
+
+    if is_cf_block:
+        category = 'CLOUDFLARE_BLOCK'
+    elif status_code == 429:
+        category = 'RATE_LIMITED'
+    elif status_code == 403:
+        category = 'HTTP_403_FORBIDDEN'
+    elif status_code and status_code >= 500:
+        category = 'SERVER_ERROR'
+    elif 'timeout' in error_msg.lower():
+        category = 'TIMEOUT'
+    elif getattr(result, 'success', False) and not getattr(result, 'extracted_content', None):
+        category = 'CSS_EXTRACTION_FAILED'
+    else:
+        category = 'UNKNOWN_FAILURE'
+
+    diagnostics = {
+        'status_code': status_code,
+        'error_message': error_msg,
+        'html_length': len(html),
+        'html_preview': html[:300].replace('\n', ' ') if html else '',
+        'notable_headers': notable_headers,
+    }
+    return category, diagnostics
+
 class ProductScraper:
     """Scrape product details (NO PDF EXTRACTION - use product_pdf_scraper.py for PDFs)
     
@@ -48,22 +92,15 @@ class ProductScraper:
         self.save_screenshots = save_screenshots
     
     async def scrape_product_details(self, product_info: Dict) -> Optional[Dict]:
-        """Scrape product details using client-specific CSS selectors
-        
-        Args:
-            product_info: Dictionary with product information including URL
-            
-        Returns:
-            Dictionary with extracted product data or None if extraction failed
+        """Scrape product details using client-specific CSS selectors.
+
+        Retries up to MAX_RETRIES times with exponential backoff for transient
+        failures (timeouts, server errors, rate limiting, CSS not found).
+        Logs diagnostic detail on every failure to surface anti-bot signals.
         """
-        
-        # Get extraction schema from client strategy
         product_detail_schema = self.extraction_strategy.get_product_detail_schema()
-        
-        # Simple CSS extraction - NO JavaScript
         extraction_strategy = JsonCssExtractionStrategy(schema=product_detail_schema)
-        
-        # Use client-specific configuration
+
         crawler_config = CrawlerRunConfig(
             extraction_strategy=extraction_strategy,
             cache_mode=CacheMode.BYPASS,
@@ -73,41 +110,71 @@ class ProductScraper:
             user_agent=self.config.USER_AGENT,
             delay_before_return_html=2.0
         )
-        
-        async with AsyncWebCrawler() as crawler:
-            print(f"  → Scraping product details (CSS)...")
-            
+
+        max_retries = max(1, getattr(self.config, 'MAX_RETRIES', 3))
+        retry_delay = getattr(self.config, 'RETRY_DELAY', 5)
+
+        for attempt in range(1, max_retries + 1):
+            label = f"CSS, attempt {attempt}/{max_retries}" if attempt > 1 else "CSS"
+            print(f"  → Scraping product details ({label})...")
+
+            result = None
             try:
-                result = await crawler.arun(product_info["url"], config=crawler_config)
-                
-                if result.success and result.extracted_content:
-                    try:
-                        data = json.loads(result.extracted_content)
-                        if isinstance(data, list):
-                            data = data[0] if data else {}
-                        
-                        # Save screenshot if available
-                        if self.save_screenshots and result.screenshot:
-                            product_name = clean_product_name(data.get("product_name", product_info.get("title", "Unknown")))
-                            screenshot_path = self.output_dir / "screenshots" / f"{sanitize_filename(product_name)}.png"
-                            screenshot_path.parent.mkdir(exist_ok=True)
-                            save_screenshot(result.screenshot, screenshot_path)
-                        
-                        print(f"  ✓ Extracted product details")
-                        return data
-                    except json.JSONDecodeError as e:
-                        print(f"  ✗ Error parsing product details JSON: {e}")
-                        raise ValueError(f"Failed to parse product details JSON: {e}") from e
-                    except Exception as e:
-                        print(f"  ✗ Error processing product details: {e}")
-                        raise
-
-                print(f"  ✗ No content extracted")
-                raise ValueError("No content extracted from product page")
-
-            except Exception as e:
-                print(f"  ✗ Error scraping product details: {e}")
+                async with AsyncWebCrawler() as crawler:
+                    result = await crawler.arun(product_info["url"], config=crawler_config)
+            except Exception as crawl_exc:
+                exc_str = str(crawl_exc)
+                category = 'TIMEOUT' if 'timeout' in exc_str.lower() else 'CRAWL_EXCEPTION'
+                print(f"  ✗ [{category}] {exc_str[:300]}")
+                if attempt < max_retries:
+                    backoff = retry_delay * (2 ** (attempt - 1))
+                    print(f"  ↻ Retrying in {backoff}s...")
+                    await asyncio.sleep(backoff)
+                    continue
                 raise
+
+            # Crawl completed — check for success
+            if result.success and result.extracted_content:
+                try:
+                    data = json.loads(result.extracted_content)
+                    if isinstance(data, list):
+                        data = data[0] if data else {}
+
+                    if self.save_screenshots and result.screenshot:
+                        product_name = clean_product_name(data.get("product_name", product_info.get("title", "Unknown")))
+                        screenshot_path = self.output_dir / "screenshots" / f"{sanitize_filename(product_name)}.png"
+                        screenshot_path.parent.mkdir(exist_ok=True)
+                        save_screenshot(result.screenshot, screenshot_path)
+
+                    print(f"  ✓ Extracted product details")
+                    return data
+                except json.JSONDecodeError as e:
+                    print(f"  ✗ Error parsing product details JSON: {e}")
+                    raise ValueError(f"Failed to parse product details JSON: {e}") from e
+                except Exception as e:
+                    print(f"  ✗ Error processing product details: {e}")
+                    raise
+
+            # Crawl failed — diagnose exactly why
+            category, diag = _classify_crawl_failure(result)
+            print(f"  ✗ [{category}] status={diag['status_code']} html={diag['html_length']}b")
+            if diag['error_message']:
+                print(f"  ✗ Crawl error: {diag['error_message'][:300]}")
+            if diag['notable_headers']:
+                print(f"  ✗ Notable headers: {diag['notable_headers']}")
+            if diag['html_preview']:
+                print(f"  ✗ HTML preview: {diag['html_preview']!r}")
+
+            retryable = category in ('TIMEOUT', 'CSS_EXTRACTION_FAILED', 'SERVER_ERROR', 'RATE_LIMITED')
+            if retryable and attempt < max_retries:
+                backoff = retry_delay * (2 ** (attempt - 1))
+                if category == 'RATE_LIMITED':
+                    backoff = max(backoff, 30)
+                print(f"  ↻ [{category}] Retrying in {backoff}s...")
+                await asyncio.sleep(backoff)
+                continue
+
+            raise ValueError(f"[{category}] No content extracted from product page")
     
     async def scrape_product(self, product_info: Dict) -> Optional[Dict]:
         """Main scraper method - extracts product details only
