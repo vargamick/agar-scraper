@@ -7,6 +7,7 @@ import asyncio
 import json
 import argparse
 import sys
+import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
@@ -180,17 +181,23 @@ class ProductCollector:
     async def _extract_page_content(self, category_url: str, indent: str = "  ") -> Tuple[List[Dict], List[Dict]]:
         """
         Extract both subcategories and products from a category page.
-        
+
+        Runs two CSS strategies sequentially. Logs timing, HTTP status, and
+        diagnostic detail on every fetch — including anti-bot headers and an
+        HTML preview when the page loads but selectors match nothing.
+        Skips the second strategy immediately if the first timed out.
+
         Returns:
             Tuple of (subcategories, products)
         """
         subcategories = []
         products = []
-        
+
         extraction_strategies = [
             # Strategy 1: Extract subcategories (product-category items)
             {
                 "name": "Subcategories",
+                "key": "subcategories",
                 "schema": {
                     "name": "Subcategory List",
                     "baseSelector": "ul.products",
@@ -212,6 +219,7 @@ class ProductCollector:
             # Strategy 2: Extract products (type-product items)
             {
                 "name": "Products",
+                "key": "products",
                 "schema": {
                     "name": "Product List",
                     "baseSelector": "ul.products",
@@ -230,14 +238,19 @@ class ProductCollector:
                 }
             }
         ]
-        
+
+        print(f"{indent}→ Fetching: {category_url}")
+        timed_out = False
+
         async with AsyncWebCrawler() as crawler:
-            print(f"{indent}→ Fetching: {category_url}")
-            
-            # Try each extraction strategy
             for strategy_info in extraction_strategies:
+                sname = strategy_info['name']
+
+                if timed_out:
+                    print(f"{indent}  ⏭ [{sname}] skipped — previous strategy timed out")
+                    continue
+
                 extraction_strategy = JsonCssExtractionStrategy(schema=strategy_info['schema'])
-                
                 crawler_config = CrawlerRunConfig(
                     extraction_strategy=extraction_strategy,
                     cache_mode=CacheMode.BYPASS,
@@ -246,64 +259,103 @@ class ProductCollector:
                     verbose=False,
                     user_agent=self.config.USER_AGENT
                 )
-                
+
+                t0 = time.monotonic()
+                result = None
                 try:
                     result = await crawler.arun(category_url, config=crawler_config)
-                    
-                    if result.success and result.extracted_content:
-                        data = json.loads(result.extracted_content)
-                        
-                        if isinstance(data, list):
-                            data = data[0] if data else {}
-                        
-                        # Extract subcategories
-                        if strategy_info['name'] == "Subcategories":
-                            subcats = data.get("subcategories", [])
-                            if subcats:
-                                print(f"{indent}  ✓ Extracted {len(subcats)} subcategories")
-                                for subcat in subcats:
-                                    url = subcat.get("url", "")
-                                    if url and not url.startswith("http"):
-                                        url = f"{self.base_url}{url}"
-                                    
-                                    if url and "/product-category/" in url:
-                                        # Extract slug from URL
-                                        slug = url.rstrip('/').split('/')[-1]
-                                        title = subcat.get("title", "").strip()
-                                        # Remove count from title if present
-                                        if "(" in title:
-                                            title = title.split("(")[0].strip()
-                                        
-                                        subcat_data = {
-                                            "name": title,
-                                            "slug": slug,
-                                            "url": url,
-                                            "count": subcat.get("count", "").strip("()"),
-                                            "image": subcat.get("image", "")
-                                        }
-                                        subcategories.append(subcat_data)
-                        
-                        # Extract products
-                        elif strategy_info['name'] == "Products":
-                            prods = data.get("products", [])
-                            if prods:
-                                print(f"{indent}  ✓ Extracted {len(prods)} products")
-                                for prod in prods:
-                                    url = prod.get("url", "")
-                                    if url and not url.startswith("http"):
-                                        url = f"{self.base_url}{url}"
-                                    
-                                    if url and "/product/" in url:
-                                        product_data = {
-                                            "title": prod.get("title", "").strip(),
-                                            "url": url,
-                                            "image": prod.get("image", "")
-                                        }
-                                        products.append(product_data)
-                        
                 except Exception as e:
-                    print(f"{indent}  ✗ Error with {strategy_info['name']} strategy: {e}")
-        
+                    elapsed = time.monotonic() - t0
+                    exc_str = str(e)
+                    is_timeout = 'timeout' in exc_str.lower()
+                    if is_timeout:
+                        timed_out = True
+                    cat = 'TIMEOUT' if is_timeout else 'EXCEPTION'
+                    print(f"{indent}  ✗ [{sname}][{cat}] {elapsed:.1f}s — {exc_str[:200]}")
+                    continue
+
+                elapsed = time.monotonic() - t0
+                status_code = getattr(result, 'status_code', None)
+                html = getattr(result, 'html', '') or ''
+                html_len = len(html)
+                error_msg = getattr(result, 'error_message', '') or ''
+                response_headers = getattr(result, 'response_headers', {}) or {}
+                notable_headers = {
+                    k: v for k, v in response_headers.items()
+                    if any(s in k.lower() for s in ('cf-', 'server', 'retry-after', 'x-cache'))
+                }
+
+                if not result.success:
+                    is_timeout = 'timeout' in error_msg.lower()
+                    if is_timeout:
+                        timed_out = True
+                    cat = 'TIMEOUT' if is_timeout else 'FETCH_FAILED'
+                    print(f"{indent}  ✗ [{sname}][{cat}] {elapsed:.1f}s  status={status_code}  html={html_len}b")
+                    if error_msg:
+                        print(f"{indent}    error: {error_msg[:200]}")
+                    if notable_headers:
+                        print(f"{indent}    headers: {notable_headers}")
+                    if html:
+                        print(f"{indent}    html preview: {html[:200].replace(chr(10), ' ')!r}")
+                    continue
+
+                # Page loaded — check extraction result
+                print(f"{indent}  ✓ [{sname}] {elapsed:.1f}s  status={status_code}  html={html_len}b")
+
+                if not result.extracted_content:
+                    print(f"{indent}  ⚠️ [{sname}] page loaded but CSS selectors matched nothing")
+                    if html:
+                        print(f"{indent}    html preview: {html[:200].replace(chr(10), ' ')!r}")
+                    continue
+
+                try:
+                    data = json.loads(result.extracted_content)
+                    if isinstance(data, list):
+                        data = data[0] if data else {}
+                except json.JSONDecodeError as e:
+                    print(f"{indent}  ✗ [{sname}] JSON parse error: {e}")
+                    continue
+
+                if sname == "Subcategories":
+                    subcats = data.get("subcategories", [])
+                    if subcats:
+                        print(f"{indent}  ✓ Extracted {len(subcats)} subcategories")
+                        for subcat in subcats:
+                            url = subcat.get("url", "")
+                            if url and not url.startswith("http"):
+                                url = f"{self.base_url}{url}"
+                            if url and "/product-category/" in url:
+                                slug = url.rstrip('/').split('/')[-1]
+                                title = subcat.get("title", "").strip()
+                                if "(" in title:
+                                    title = title.split("(")[0].strip()
+                                subcategories.append({
+                                    "name": title,
+                                    "slug": slug,
+                                    "url": url,
+                                    "count": subcat.get("count", "").strip("()"),
+                                    "image": subcat.get("image", "")
+                                })
+                    else:
+                        print(f"{indent}  ⚠️ [{sname}] extracted_content parsed but subcategories list is empty")
+
+                elif sname == "Products":
+                    prods = data.get("products", [])
+                    if prods:
+                        print(f"{indent}  ✓ Extracted {len(prods)} products")
+                        for prod in prods:
+                            url = prod.get("url", "")
+                            if url and not url.startswith("http"):
+                                url = f"{self.base_url}{url}"
+                            if url and "/product/" in url:
+                                products.append({
+                                    "title": prod.get("title", "").strip(),
+                                    "url": url,
+                                    "image": prod.get("image", "")
+                                })
+                    else:
+                        print(f"{indent}  ⚠️ [{sname}] extracted_content parsed but products list is empty")
+
         # Deduplicate products
         seen_urls = set()
         unique_products = []
@@ -311,12 +363,11 @@ class ProductCollector:
             if product["url"] not in seen_urls:
                 seen_urls.add(product["url"])
                 unique_products.append(product)
-        
-        # Apply test limit if needed
+
         if self.test_mode and len(unique_products) > self.test_limit:
             unique_products = unique_products[:self.test_limit]
             print(f"{indent}  ⚠️ Limited to {self.test_limit} products (test mode)")
-        
+
         return subcategories, unique_products
     
     async def collect_all_products(self, categories: List[Dict]) -> List[Dict]:
